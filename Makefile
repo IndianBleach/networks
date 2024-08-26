@@ -1,5 +1,7 @@
+OUT_FILE_NAME = src.out
+
 GCC = gcc
-MAIN_FLAGS = -std=c99 -g -O0
+MAIN_FLAGS = -std=c99 -g -O0 -o $(OUT_FILE_NAME)
 WARNINGS_FLAGS = -Wall -Wextra -Wpedantic -Wduplicated-branches -Wduplicated-cond -Wcast-qual -Wconversion -Wsign-conversion -Wlogical-op -Werror
 SANITIZER_FLAGS = -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=leak -fsanitize=undefined -fsanitize-address-use-after-scope
 FLAGS = $(MAIN_FLAGS) $(WARNINGS_FLAGS) $(SANITIZER_FLAGS)
@@ -9,6 +11,6 @@ SOURCES = $(wildcard ./*.c)
 HEADERS = $(wildcard ./*.h)
 
 all:
-	$(GCC) $(FLAGS) $(SOURCES)
+	$(GCC) $(FLAGS) $(SOURCES) $(HEADERS)
 
 .PHONY: all
