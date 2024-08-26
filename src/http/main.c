@@ -7,59 +7,112 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h> // close(socketf)
+#include <pthread.h>
 
 #define SOCKET_ERROR -1
+#define SOCKET_PORT 3750
 
-int main() {
-     
-    socketinfo s;
-    s.port = 9999;
-    s.ip_addr = "74.125.235.20";
+char msg[] = "ping!\n";
+char rbuff[1024];
 
-    printf("socket=%i %s", s.port, s.ip_addr);
-
+// return thread_id
+void* server_start() {
+    
     // create socket
     int socketId = socket(AF_INET, SOCK_STREAM, 0);
     if (socketId == SOCKET_ERROR) {
         log_err("socket() returned SOCKET_ERROR", "socket");
-        return 1;
     }
 
     // bind 
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(5064);
+    addr.sin_port = htons(SOCKET_PORT);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
     if (bind(socketId, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         log_err("bind() returned error < 0", "socket");
-        return 1;
     }
 
     // listen
     listen(socketId, 1);
 
     int client = -1;
-    int bytes_read = 0;
+    ssize_t bytes_read = 0;
     char client_buff[1024];
 
-    printf("listening\n");
+    //const char* body = "<title>tt</title>\n<h1>Test page</h1>\n";
+    const char* resp = "HTTP/1.1 200 OK\r\n \
+        Version: HTTP/1.1\r\n \
+        Content-Type: text/html; charset=utf-8\r\n \
+        Content-Length: 47\n\0";
 
     for(;;) {
-        // accept client connections
+        //sleep(1);
+
         client = accept(socketId, NULL, NULL);
         if (client < 0) {
             log_err("can't accept client socket.", "socket");
-            return 1;
+            break;
         }
 
         while(1) {
-            recv(socketId, client_buff, 1024, 0);
+            bytes_read = recv(client, client_buff, 1024, 0);
             if (bytes_read <= 0) break;
-            //send()
+            send(client, resp, 124, 0);
+        }
+    }
+
+    //close(client);
+
+    return NULL;
+}
+
+
+void background_run(pthread_t* thread, void*(*funcptr)(void*)) {
+    pthread_create(thread, NULL, funcptr, NULL);
+}
+
+
+
+void* client_start() {
+    int sock;
+    struct sockaddr_in addr;
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock  < 0) {
+        log_err("socket() return SOCKET_ERROR -1", "socket");
+    }
+
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(SOCKET_PORT);
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+        if (connect(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+            log_err("connect() return SOCKET_ERROR -1", "socket");
         }
 
-        close(client);
+    for(;;) {
+        sleep(1);
+
+        send(sock, msg, sizeof(msg), 0);
+        recv(sock, rbuff, 1024, 0);
+        printf("recv=%s\n", rbuff);
     }
+
+    close(sock);
+}
+
+int main() {
+     
+    pthread_t server;
+    background_run(&server, server_start);
+    
+    pthread_t client;
+    background_run(&client, client_start);
+
+    pthread_join(server, NULL);
+    pthread_join(client, NULL);
 
     return 0;
 }
