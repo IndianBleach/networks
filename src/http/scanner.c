@@ -1,6 +1,5 @@
 #include "scanner.h"
-
-#include <cctype>
+#include <ctype.h>
 
 const char *keywords_lookup[END] = {
     [GET] = "GET",
