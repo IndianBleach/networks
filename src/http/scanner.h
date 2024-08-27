@@ -4,12 +4,15 @@
 #include <string.h>
 #include <vector.h>
 
+#define MAX_NUMBER_LEN 10
+
 // trusted_str means that string is null-terminated
 typedef char *trusted_str;
 
 enum token_type {
     IDENTIFIER,
-    NUMBER,
+    INT,
+    FLOAT,
     STRING,
 
     // keywords
@@ -37,9 +40,10 @@ extern const char *keywords_lookup[END];
 typedef struct {
     enum token_type type;
     trusted_str lexeme;
+
     union {
         int i;
-        double d;
+        float f;
     } u_value;
 } token;
 
@@ -56,8 +60,10 @@ void scanner_init(scanner *scnr, const trusted_str input);
 void scanner_destroy(scanner *scnr);
 
 int is_end(scanner *scnr);
-char char_at(scanner *scnr, size_t i);
 char move(scanner *scnr);
 
 token *next_token(scanner *scnr);
 void scan(scanner *scnr);
+
+void number(scanner *scnr, token *);
+void identifier(scanner *scnr, token *);

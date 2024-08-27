@@ -1,4 +1,5 @@
 #include "scanner.h"
+
 #include <ctype.h>
 
 const char *keywords_lookup[END] = {
@@ -25,31 +26,29 @@ void scanner_init(scanner *scnr, const trusted_str input) {
 
     scnr->tokens = malloc(sizeof(vector));
     // malloc error-checking
-    vector_init(scnr->tokens, sizeof(token), 0);
+    vector_init(scnr->tokens, sizeof(token *), 0);
 }
 
 void scanner_destroy(scanner *scnr) {
-    scnr->cursor = scnr->len = 0;
-
-    for (size_t i = 0; scnr->tokens->len; i++) {
-        token *tkn = vector_get(scnr->tokens, i);
+    for (size_t i = 0; i < scnr->tokens->len; i++) {
+        token **tkn = vector_get(scnr->tokens, i);
         assert(tkn);
-        token_destroy(tkn);
+        token_destroy(*tkn);
+        free(*tkn);
     }
     vector_destroy(scnr->tokens);
-
-    free(scnr->input);
     free(scnr->tokens);
+
+    scnr->cursor = scnr->len = 0;
+    free(scnr->input);
 }
 
 int is_end(scanner *scnr) { return scnr->cursor == scnr->len; }
 
-char move(scanner *scnr) { return char_at(scnr, scnr->cursor++); }
-
-char char_at(scanner *scnr, size_t i) {
+char move(scanner *scnr) {
     if (is_end(scnr))
         return '\0';
-    return scnr->input[i];
+    return scnr->input[scnr->cursor++];
 }
 
 token *next_token(scanner *scnr) {
@@ -58,6 +57,8 @@ token *next_token(scanner *scnr) {
         scnr->start = scnr->cursor;
         char ch = move(scnr);
         if (isdigit(ch)) {
+            number(scnr, tkn);
+            return tkn;
         }
         switch (ch) {
             // symbols
@@ -104,12 +105,49 @@ token *next_token(scanner *scnr) {
                 printf("Unknown token\n");
         }
     }
+    return tkn;
 }
 
 void scan(scanner *scnr) {
     while (!is_end(scnr)) {
         token *t = next_token(scnr);
+        vector_push_back(scnr->tokens, &t);
     }
 }
 
-int main(void) { return 0; }
+void number(scanner *scnr, token *tkn) {
+    int is_float = 0;
+    tkn->lexeme = malloc(MAX_NUMBER_LEN + 1);
+    while (!is_end(scnr) && scnr->cursor < MAX_NUMBER_LEN) {
+        char ch = move(scnr);
+        if (ch == '.' && !is_float)
+            is_float = 1;
+        else if (!isdigit(ch))
+            break;
+    }
+    size_t substr_len = scnr->cursor - scnr->start;
+    assert(MAX_NUMBER_LEN >= substr_len);
+    memcpy(tkn->lexeme, scnr->input + scnr->start, substr_len);
+    tkn->lexeme[substr_len] = '\0';
+    if (is_float) {
+        tkn->type = FLOAT;
+        tkn->u_value.f = atof(tkn->lexeme);
+    } else {
+        tkn->type = INT;
+        tkn->u_value.i = atol(tkn->lexeme);
+    }
+}
+
+void identifier(scanner *scnr, token *tkn) {}
+
+int main(void) {
+    scanner *scnr = malloc(sizeof(scanner));
+    char *tests[] = {
+        "0",
+    };
+    scanner_init(scnr, tests[0]);
+    scan(scnr);
+    scanner_destroy(scnr);
+    free(scnr);
+    return 0;
+}
