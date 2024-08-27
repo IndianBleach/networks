@@ -19,8 +19,17 @@ HEADERS = $(shell find $(SRC_DIR) $(UTILS_SRC_DIR) -name *.hpp -or -name *.h)
 
 DEPS = $(BUILD_DIR)/vector.o
 
+
+
+
 format:
-	clang-format-14 -i $(SOURCES) $(HEADERS)
+	clang-format-14 -i $(SOURCES) $(HEADERS) 
+
+server: format
+	$(GCC) $(FLAGS) $(SRC_DIR)/http/server/server.c -o $(BUILD_OBJ)
+
+test: test
+	$(GCC) $(FLAGS) -c $(SRC_DIR)/http/server/new.c -o $(BUILD_OBJ)
 
 vector: format
 	$(GCC) $(FLAGS) -c $(UTILS_SRC_DIR)/vector.c -o $(BUILD_DIR)/vector.o
@@ -38,4 +47,4 @@ clean:
 	# cd $(BUILD_DIR)
 	rm $(BUILD_DIR)/*.out $(BUILD_DIR)/*.o $(BUILD_DIR)/scanner $(BUILD_DIR)/server $(BUILD_DIR)/parser
 
-.PHONY: all
+.PHONY: server
