@@ -63,6 +63,7 @@ int vector_shrink(vector *v) {
     }
     return 0;
 }
+
 void vector_rmv_at(vector *v, size_t at) {
     // TODO
     return;

@@ -7,7 +7,7 @@ typedef struct socketinfo socketinfo;
 
 struct socketinfo {
     u_short port;
-    const char* ip_addr;
+    const char *ip_addr;
 };
 
 #endif

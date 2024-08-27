@@ -1,3 +1,5 @@
+#include "parser.h"
+
 #include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -7,7 +9,6 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include "parser.h"
 
 #define PORT "4221"
 #define BACKLOG 5
@@ -47,7 +48,7 @@ int get_server_socket(void) {
 
 void test() {
     char *r = "POST / HTTP/1.1";
-    http_req req = { 0 };
+    http_req req = {0};
     int err = parse_req_line(&req, &r);
     printf("%d\n", req.method);
 }

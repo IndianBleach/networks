@@ -14,21 +14,24 @@ SANITIZER_FLAGS = -fsanitize=address -fsanitize=pointer-compare -fsanitize=point
 FLAGS = $(MAIN_FLAGS) $(WARNINGS_FLAGS) $(SANITIZER_FLAGS)
 
 # Sources and headers
-SOURCES = $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c)
-SOURCES = $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c)
+SOURCES = $(shell find $(SRC_DIR) $(UTILS_SRC_DIR) -name *.cpp -or -name *.c)
+HEADERS = $(shell find $(SRC_DIR) $(UTILS_SRC_DIR) -name *.hpp -or -name *.h)
 
 DEPS = $(BUILD_DIR)/vector.o
 
-vector:
+format:
+	clang-format-14 -i $(SOURCES) $(HEADERS)
+
+vector: format
 	$(GCC) $(FLAGS) -c $(UTILS_SRC_DIR)/vector.c -o $(BUILD_DIR)/vector.o
 
-all: vector
+all: vector format
 	$(GCC) $(FLAGS) $(SOURCES)
 
-scanner: vector
+scanner: vector format
 	$(GCC) $(FLAGS) $(DEPS) $(SRC_DIR)/http/scanner.c -o $(BUILD_DIR)/scanner
 
-parser: vector
+parser: vector format
 	$(GCC) $(FLAGS) $(DEPS) $(SRC_DIR)/http/parser.c -o $(BUILD_DIR)/parser
 
 clean:

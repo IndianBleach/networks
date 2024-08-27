@@ -194,10 +194,7 @@ void number(scanner *scnr, token *tkn) {
 void identifier(scanner *scnr, token *tkn) {
     tkn->lexeme = malloc(MAX_ID_LEN + 1);
     const char *charset = ID_CHARSET;
-    while (!is_end() &&
-        (isalpha(peek()) ||
-        isdigit(peek()) ||
-        strchr(charset, peek())))
+    while (!is_end() && (isalpha(peek()) || isdigit(peek()) || strchr(charset, peek())))
         move();
 
     substrncpy(scnr, tkn->lexeme, MAX_ID_LEN);
