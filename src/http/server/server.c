@@ -11,23 +11,22 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-// ___________ server.config
-typedef struct serverconfig serverconfig;
+#define IP "127.0.0.1"
+#define PORT "8003"
 
-struct serverconfig {
+// ___________ server.config.io
+typedef struct {
+    int epoll_max_events;
+} serverconfig_io;
+
+// ___________ server.config
+typedef struct {
     struct addrinfo host_addr;
     serverconfig_io io;
     const char *server_port;
     const char *server_ip;
     int server_max_con;
-};
-
-// ___________ server.config.io
-typedef struct serverconfig_io serverconfig_io;
-
-struct serverconfig_io {
-    int epoll_max_events;
-};
+} serverconfig;
 
 int server_start(serverconfig *config) {
     struct addrinfo *parseaddr;
@@ -42,20 +41,20 @@ int server_start(serverconfig *config) {
     // create socket
     int socket_fd;
     if ((socket_fd = socket(parseaddr->ai_family, parseaddr->ai_socktype, parseaddr->ai_protocol)) == -1) {
-        printf("socket\n");
+        perror("socket\n");
         return -1;
     }
 
     // bind
     if (bind(socket_fd, parseaddr->ai_addr, parseaddr->ai_addrlen)) {
-        printf("bind\n");
+        perror("bind\n");
         return -1;
     }
 
     freeaddrinfo(parseaddr);
 
     if (listen(socket_fd, config->server_max_con) == -1) {
-        printf("listen");
+        perror("listen");
         return -1;
     }
 
@@ -76,7 +75,7 @@ int server_start(serverconfig *config) {
         client_fd = accept(socket_fd, NULL, NULL);
 
         if (client_fd < 0) {
-            printf("accept<0\n");
+            perror("accept\n");
             continue;
         }
 
@@ -102,9 +101,9 @@ int main() {
     printf("start. !\n");
 
     serverconfig config;
-    config.server_ip = "127.0.0.1";
+    config.server_ip = IP;
     config.server_max_con = 50;
-    config.server_port = "8003";
+    config.server_port = PORT;
     config.host_addr.ai_family = AF_INET;
     config.host_addr.ai_socktype = SOCK_STREAM;
     config.host_addr.ai_flags = AI_PASSIVE;

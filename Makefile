@@ -26,7 +26,7 @@ format:
 	clang-format-14 -i $(SOURCES) $(HEADERS) 
 
 server: format
-	$(GCC) $(FLAGS) $(SRC_DIR)/http/server/server.c -o $(BUILD_OBJ)
+	$(GCC) $(FLAGS) $(SRC_DIR)/http/server/server.c -o $(BUILD_PATH)
 
 test: test
 	$(GCC) $(FLAGS) -c $(SRC_DIR)/http/server/new.c -o $(BUILD_OBJ)
@@ -37,7 +37,7 @@ vector: format
 all: vector format
 	$(GCC) $(FLAGS) $(SOURCES)
 
-scanner: vector format
+scanner: vector
 	$(GCC) $(FLAGS) $(DEPS) $(SRC_DIR)/http/scanner.c -o $(BUILD_DIR)/scanner
 
 parser: vector format
