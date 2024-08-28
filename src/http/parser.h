@@ -29,23 +29,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../include/vector.h"
+#include "http.h"
+#include "token.h"
 
-#define MAX_REQ_LINE_SZ 128
-
-enum http_method { GET, POST, UNKNWN, END };
-
-enum http_ver { VER_1_1, VER_2 };
-
-extern const char *methods_lookup[END];
+#define move() (_move(p))
+#define peek() (_peek(p))
+#define is_end() (_is_end(p))
+#define peek_next() (_peek_next(p))
 
 typedef struct {
-    enum http_method method;
-    char *path;
-    enum http_ver ver;
-    char *headers;
+    vector *tokens;
+    size_t cursor, start;
+} parser;
 
-} http_req;
+int _is_end(parser *p);
+token *_move(parser *p);
+token *_peek(parser *p);
+token *_peek_next(parser *p);
 
+void parser_init(parser *p, vector *tkns);
+void parser_destroy(parser *p);
 
 void parse_req(http_req *, char *);
 int parse_req_line(http_req *, char **);

@@ -18,29 +18,10 @@ int find_keyword(const char *str) {
     return UNKNWN;
 }
 
-void token_create(token *tkn, enum token_type type, trusted_str lexeme) {
-    tkn->type = type;
-    tkn->lexeme = (trusted_str) malloc(strlen(lexeme) + 1);
-    strcpy(tkn->lexeme, lexeme);
+int is_method(int type) {
+    return K_M_START < type && type < K_M_FIN;
 }
 
-void token_destroy(token *tkn) { free(tkn->lexeme); }
-
-void token_print(token *tkn) {
-    switch (tkn->type) {
-        case INT: {
-            printf("Token INT with value %s\n", tkn->lexeme);
-            break;
-        }
-        case FLOAT: {
-            printf("Token FLOAT with value %s\n", tkn->lexeme);
-            break;
-        }
-        default: {
-            printf("Token %s\n", tkn->lexeme);
-        }
-    }
-}
 
 void scanner_init(scanner *scnr, const trusted_str input) {
     scnr->len = strlen(input);
@@ -121,7 +102,7 @@ token *next_token(scanner *scnr) {
                 if (isdigit(peek())) {
                     move();
                     number(scnr, tkn);
-                } else 
+                } else
                     token_create(tkn, DASH, "-");
                 break;
             }
@@ -211,14 +192,14 @@ void identifier(scanner *scnr, token *tkn) {
     }
 }
 
-int main(void) {
-    // TODO: cover scanner with tests
-    scanner *scnr = malloc(sizeof(scanner));
-    char *test = "GET HHTP HTTP PUT -abc- -GET- HTTP123";
-    scanner_init(scnr, test );
-    scan(scnr);
-    scanner_print_tokens(scnr);
-    scanner_destroy(scnr);
-    free(scnr);
-    return 0;
-}
+// int main(void) {
+//     // TODO: cover scanner with tests
+//     scanner *scnr = malloc(sizeof(scanner));
+//     char *test = "GET HHTP HTTP PUT -abc- -GET- HTTP123";
+//     scanner_init(scnr, test );
+//     scan(scnr);
+//     scanner_print_tokens(scnr);
+//     scanner_destroy(scnr);
+//     free(scnr);
+//     return 0;
+// }

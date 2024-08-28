@@ -4,6 +4,8 @@
 #include <string.h>
 #include <vector.h>
 
+#include "token.h"
+
 #define MAX_NUMBER_LEN 15
 #define MAX_ID_LEN 15
 
@@ -19,58 +21,8 @@
 // trusted_str means that string is null-terminated
 typedef char *trusted_str;
 
-enum token_type {
-
-    // KEYWORDS
-    K_GET,
-    K_POST,
-    K_PUT,
-    /*
-     * ...
-    */
-
-    K_HTTP,
-    K_END,
-
-    IDENTIFIER,
-    // maybe unneccesary
-    INT,
-    FLOAT,
-
-    NUMBER,
-    STRING,
-
-
-    DOT,
-    DASH,
-    SLASH,
-    COLON,
-    SEMICOLON,
-    STAR,
-
-    LF, // '\n'
-    CR, // '\r'
-    SPACE,
-
-    UNKNWN,
-    TKN_END,
-};
 
 extern const char *keywords_lookup[K_END];
-
-typedef struct {
-    enum token_type type;
-    trusted_str lexeme;
-
-    union {
-        int i;
-        float f;
-    } u_value;
-} token;
-
-void token_create(token *tkn, enum token_type type, trusted_str lexeme);
-void token_destroy(token *tkn);
-void token_print(token *tkn);
 
 typedef struct {
     trusted_str input;
@@ -96,3 +48,4 @@ void scan(scanner *scnr);
 
 void number(scanner *scnr, token *);
 void identifier(scanner *scnr, token *);
+int is_method(int type);

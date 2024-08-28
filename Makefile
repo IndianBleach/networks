@@ -21,11 +21,7 @@ DEPS = $(BUILD_DIR)/vector.o
 
 
 
-
-# format:
-# 	clang-format-14 -i $(SOURCES) $(HEADERS) 
-
-server: format
+server:
 	$(GCC) $(FLAGS) $(SRC_DIR)/http/server/server.c -o $(BUILD_PATH)
 
 test: test
@@ -34,14 +30,14 @@ test: test
 vector:
 	$(GCC) $(FLAGS) -c $(UTILS_SRC_DIR)/vector.c -o $(BUILD_DIR)/vector.o
 
-all: vector format
+all: vector
 	$(GCC) $(FLAGS) $(SOURCES)
 
 scanner: vector
 	$(GCC) $(FLAGS) $(DEPS) $(SRC_DIR)/http/scanner.c -o $(BUILD_DIR)/scanner
 
-parser: vector format
-	$(GCC) $(FLAGS) $(DEPS) $(SRC_DIR)/http/parser.c -o $(BUILD_DIR)/parser
+parser: vector
+	$(GCC) $(FLAGS) $(DEPS) $(SRC_DIR)/http/parser.c $(SRC_DIR)/http/scanner.c -o $(BUILD_DIR)/parser
 
 clean:
 	# cd $(BUILD_DIR)
