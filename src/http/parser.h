@@ -1,26 +1,62 @@
 #pragma once
 
+/*
+ * HTTP request grammar
+ *
+ * request = method path http-version ;
+ *
+ * method = "GET" / "POST" / "CONNECT" / ... / "PUT" ;
+ * version = "HTTP","/",("1.1" | "2.0")
+ * path             = path-abempty    ; begins with "/" or is empty
+                    / path-absolute   ; begins with "/" but not "//"
+                    / path-noscheme   ; begins with a non-colon segment
+                    / path-rootless   ; begins with a segment
+                    / path-empty      ; zero characters
+
+      path-abempty  = *( "/" segment )
+      path-absolute = "/" [ segment-nz *( "/" segment ) ]
+      path-noscheme = segment-nz-nc *( "/" segment )
+      path-rootless = segment-nz *( "/" segment )
+      path-empty    = 0<pchar>
+
+      segment       = *pchar
+      segment-nz    = 1*pchar
+      segment-nz-nc = 1*( unreserved / pct-encoded / sub-delims / "@" )
+                    ; non-zero-length segment without any colon ":"
+      pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
+#include "../include/vector.h"
+#include "http.h"
+#include "token.h"
 
-#define MAX_REQ_LINE_SZ 128
-
-enum http_method { GET, POST, UNKNWN, END };
-
-enum http_ver { VER_1_1, VER_2 };
-
-extern const char *methods_lookup[END];
+#define move() (p_move(p))
+#define peek() (p_peek(p))
+#define is_end() (p_is_end(p))
+#define peek_next() (p_peek_next(p))
 
 typedef struct {
-    enum http_method method;
-    char *path;
-    enum http_ver ver;
-    char *headers;
+    vector *tokens;
+    size_t cursor, start;
+} parser;
 
-} http_req;
+int p_is_end(parser *p);
+token *p_move(parser *p);
+token *p_peek(parser *p);
+token *p_peek_next(parser *p);
+int match(token *tkn, int cnt, ...);
 
-void parse_req(http_req *, char *);
-int parse_req_line(http_req *, char **);
-void parse_headers(http_req *, char **);
-void parse_body(http_req *, char **);
+int is_http_method(token *tkn);
+
+void parser_init(parser *p, vector *tkns);
+void parser_destroy(parser *p);
+
+void parse_err(const char *exp, const char *act);
+void parse_req(parser *p, http_req *, char *);
+int parse_req_line(parser *p, http_req *, char **);
+void parse_headers(parser *p, http_req *, char **);
+void parse_body(parser *p, http_req *, char **);

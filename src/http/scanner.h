@@ -1,4 +1,6 @@
 #pragma once
+#include "token.h"
+
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,50 +21,8 @@
 // trusted_str means that string is null-terminated
 typedef char *trusted_str;
 
-enum token_type {
-    IDENTIFIER,
-    KEYWORD,
 
-    // maybe unneccesary
-    INT,
-    FLOAT,
-
-    NUMBER,
-    STRING,
-
-
-    DOT,
-    DASH,
-    SLASH,
-    COLON,
-    SEMICOLON,
-    STAR,
-
-    LF, // '\n'
-    CR, // '\r'
-    SPACE,
-
-    UNKNWN,
-    TKN_END,
-};
-
-enum keywords { GET, POST, HTTP, KEYWRD_END };
-
-extern const char *keywords_lookup[KEYWRD_END];
-
-typedef struct {
-    enum token_type type;
-    trusted_str lexeme;
-
-    union {
-        int i;
-        float f;
-    } u_value;
-} token;
-
-void token_create(token *tkn, enum token_type type, trusted_str lexeme);
-void token_destroy(token *tkn);
-void token_print(token *tkn);
+extern const char *keywords_lookup[K_END];
 
 typedef struct {
     trusted_str input;
@@ -88,3 +48,4 @@ void scan(scanner *scnr);
 
 void number(scanner *scnr, token *);
 void identifier(scanner *scnr, token *);
+int is_method(int type);

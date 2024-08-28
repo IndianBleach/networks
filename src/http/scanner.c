@@ -2,42 +2,20 @@
 
 #include <ctype.h>
 
-const char *keywords_lookup[KEYWRD_END] = {
-    [GET] = "GET",
-    [POST] = "POST",
-    [HTTP] = "HTTP",
+const char *keywords_lookup[K_END] = {
+    [K_GET] = "GET",
+    [K_POST] = "POST",
+    [K_PUT] = "PUT",
+
+    [K_HTTP] = "HTTP",
 };
 
 int find_keyword(const char *str) {
-    for (int i = 0; i < KEYWRD_END; i++) {
+    for (int i = 0; i < K_END; i++) {
         if (strcmp(keywords_lookup[i], str) == 0)
             return i;
     }
     return UNKNWN;
-}
-
-void token_create(token *tkn, enum token_type type, trusted_str lexeme) {
-    tkn->type = type;
-    tkn->lexeme = (trusted_str) malloc(strlen(lexeme) + 1);
-    strcpy(tkn->lexeme, lexeme);
-}
-
-void token_destroy(token *tkn) { free(tkn->lexeme); }
-
-void token_print(token *tkn) {
-    switch (tkn->type) {
-        case INT: {
-            printf("Token INT with value %s\n", tkn->lexeme);
-            break;
-        }
-        case FLOAT: {
-            printf("Token FLOAT with value %s\n", tkn->lexeme);
-            break;
-        }
-        default: {
-            printf("Token %s\n", tkn->lexeme);
-        }
-    }
 }
 
 void scanner_init(scanner *scnr, const trusted_str input) {
@@ -116,7 +94,11 @@ token *next_token(scanner *scnr) {
                 return tkn;
             }
             case '-': {
-                token_create(tkn, DASH, "-");
+                if (isdigit(peek())) {
+                    move();
+                    number(scnr, tkn);
+                } else
+                    token_create(tkn, DASH, "-");
                 break;
             }
             case '/': {
@@ -128,7 +110,7 @@ token *next_token(scanner *scnr) {
                 break;
             }
             case ';': {
-                token_create(tkn, SEMICOLON, ":");
+                token_create(tkn, SEMICOLON, ";");
                 break;
             }
             case '*': {
@@ -167,8 +149,7 @@ void scan(scanner *scnr) {
     vector_push_back(scnr->tokens, &tkn);
 }
 
-void substrncpy(scanner *scnr, char *dst, int n) {
-    // size_t substr_len = () ? scnr->cursor - scnr->start : n;
+void substrncpy(scanner *scnr, char *dst, size_t n) {
     if (scnr->cursor - scnr->start < n)
         n = scnr->cursor - scnr->start;
     memcpy(dst, scnr->input + scnr->start, n);
@@ -200,22 +181,20 @@ void identifier(scanner *scnr, token *tkn) {
     substrncpy(scnr, tkn->lexeme, MAX_ID_LEN);
     int keywrd = find_keyword(tkn->lexeme);
     if (keywrd != UNKNWN) {
-        tkn->type = KEYWORD;
+        tkn->type = keywrd;
     } else {
         tkn->type = IDENTIFIER;
     }
 }
 
-int main(void) {
-    // TODO: cover scanner with tests
-    scanner *scnr = malloc(sizeof(scanner));
-    char *test_nums = "0 11 1 1 222 0.1 .11 0..11 12.345678 / * //// *12 n123";
-    char *test_id = "..a 22a a22 hello.world a-a-a-a-13-2-2-2-2- nigagagaga";
-    char *test_keywrd = "\r\n";
-    scanner_init(scnr, test_keywrd);
-    scan(scnr);
-    scanner_print_tokens(scnr);
-    scanner_destroy(scnr);
-    free(scnr);
-    return 0;
-}
+// int main(void) {
+//     // TODO: cover scanner with tests
+//     scanner *scnr = malloc(sizeof(scanner));
+//     char *test = "GET HHTP HTTP PUT -abc- -GET- HTTP123";
+//     scanner_init(scnr, test );
+//     scan(scnr);
+//     scanner_print_tokens(scnr);
+//     scanner_destroy(scnr);
+//     free(scnr);
+//     return 0;
+// }
