@@ -136,8 +136,60 @@ void fd_lsaccept(int epoll_fd, int server_fd) {
 
 #pragma endregion
 
-// sock.up()
-//
+#pragma region nt.configs
+typedef struct ntnode_addr ntnode_addr;
+typedef struct ntnode_scale ntnode_scale;
+typedef struct ntserver_scale ntserver_scale;
+typedef struct ntnode_config ntnode_config;
+typedef struct addrinfo addrinfo;
+
+struct ntnode_addr {
+    const char *port;
+    const char *ip;
+};
+
+struct ntnode_scale {
+    uint sockets_per_port;
+    uint epoll_events_cap;
+};
+
+struct ntserver_scale {
+    uint servers_per_broker;
+};
+
+struct ntnode_config {
+    const char *node_name;
+    ntnode_addr addr;
+    ntnode_scale scale;
+    addrinfo host;
+};
+
+#pragma endregion
+
+/*
+    thread_t ntnode_up(ntnode_config)
+    - run ntnode (other process)
+
+    int ntnode_run()
+    - run ntnode
+
+    httpresponse
+    -new()...
+    -BUILDER
+    httprequest
+    -parse()..
+
+    todo:
+    - read long body
+    - read long query
+    - read long files (http.files)
+    - write files
+
+
+    command_prompt (console)
+    server_driver
+*/
+
 
 // debug
 struct server_debuginfo {
@@ -145,12 +197,10 @@ struct server_debuginfo {
     int total_requests;
 } debuginfo;
 
-pthread_mutex_t _lock;
-
 void debuginfo_req_inc() {
-    pthread_mutex_lock(&_lock);
+    pthread_mutex_lock(&debuginfo._lock);
     debuginfo.total_requests++;
-    pthread_mutex_unlock(&_lock);
+    pthread_mutex_unlock(&debuginfo._lock);
 }
 
 // ___
