@@ -60,25 +60,6 @@ void epoll_add(int epoll_fd, int fd, int state) {
 
 #include <fcntl.h>
 
-int make_non_blocking(int fd) {
-    int flags, s;
-
-    flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) {
-        perror("fcntl");
-        return -1;
-    }
-
-    flags |= O_NONBLOCK;
-    s = fcntl(fd, F_SETFL, flags);
-    if (s == -1) {
-        perror("fcntl");
-        return -1;
-    }
-
-    return 0;
-}
-
 void do_read(int epollfd, int fd, char *buf) {
     int nread;
     if (fd <= 0) {
@@ -144,8 +125,6 @@ void do_write(int epollfd, int fd, char *buf) {
         epoll_del(epollfd, fd, EPOLLOUT); // Delete Listening
     } else {
         close(fd);
-        //epoll_del(epollfd, fd, EPOLLOUT);
-        //epoll_mod(epollfd, fd, EPOLLIN);
     }
     //memset(buf, 0, 1024);
 }
@@ -162,7 +141,6 @@ int server_start(serverconfig *config) {
         printf("epoll_create1\n");
         return -1;
     }
-
 
     struct addrinfo *parseaddr;
 
@@ -225,120 +203,6 @@ int server_start(serverconfig *config) {
             }
         }
     }
-
-
-    // fix maybe add_event
-    if (listen(socket_fd, config->server_max_con) == -1) {
-        printf("listen\n");
-        return -1;
-    }
-
-    // config.epoll
-    //ev.events = EPOLLIN;
-    //ev.data.fd = socket_fd;
-
-    // -- add host socket to poll IN
-    if (1 == 2 && epoll_ctl(epoll_fd, EPOLL_CTL_ADD, socket_fd, &ev) == -1) {
-        printf("epoll_ctl\n");
-        return -1;
-    }
-
-
-    for (;;) {
-        // ACCEPT NEW
-        printf("cl.accept(bef)=%i\n", client_fd);
-        client_fd = accept(socket_fd, NULL, NULL);
-
-        if (client_fd < 0) {
-            printf("accept<0\n");
-            continue;
-        }
-
-        printf("cl.accept=%i\n", client_fd);
-
-        struct epoll_event clev;
-        clev.data.fd = client_fd;
-        clev.events = EPOLLIN;
-
-        // ADD CLIENT FD
-        if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &clev) == -1) {
-            printf("epoll_ctl: client_fd\n");
-            return -1;
-        }
-
-        // GET READY EVENTS
-        nfds = epoll_wait(epoll_fd, poll_events, config->io.epoll_max_events, -1);
-
-        if (nfds == -1) {
-            printf("epoll_wait\n");
-            return -1;
-        }
-
-        printf("nfds=%i\n", nfds);
-
-        for (int i = 0; i < nfds; i++) {
-            int cur_fd = poll_events[i].data.fd;
-            printf("cl.event.fd=%i state=%u\n", cur_fd, poll_events[i].events);
-
-            if (poll_events[i].data.fd == socket_fd) {
-                //setnonblocking(conn_sock);
-                // SERVER SOCKET
-                printf("event.server\n");
-                ev.events = EPOLLIN | EPOLLET;
-                ev.data.fd = client_fd;
-
-
-            } else {
-                if (poll_events[i].events && EPOLLIN) // CAN READ
-                {
-                    // read from client
-                    bytes_read = recv(cur_fd, rbuff, 1024, 0);
-                    if (bytes_read == -1) { // client.error
-                        printf("cl.event.EPOLLIN.error: recv=-1\n");
-                        close(cur_fd);
-                        epoll_del(epoll_fd, cur_fd, EPOLLIN);
-                    } else if (bytes_read == 0) { // client.disconnect
-                        printf("cl.event.EPOLLIN.disconnect\n");
-                        close(cur_fd);
-                        epoll_del(epoll_fd, cur_fd, EPOLLIN);
-                    } else if (bytes_read > 0) { // now we readed from client_fd, set client_fd to POLLOUT (write) event
-                        printf("cl.event.EPOLLIN.modify: to pollout\n");
-                        epoll_mod(epoll_fd, cur_fd, EPOLLOUT);
-                    } else {
-                        printf("cl.event.EPOLLIN.ELSE\n");
-                    }
-
-                } else if (poll_events[i].events && EPOLLOUT) { // CAN WRITE
-                    printf("cl.event.EPOLLOUT(bef): sended=%zd\n");
-                    // send response
-                    ssize_t sent = send(cur_fd, resp2, strlen(resp2), 0);
-                    printf("cl.event.EPOLLOUT: sended=%zd\n", sent);
-                } else {
-                    printf("cl.event.ELSE(bef): ...\n");
-                    int t = poll_events[i].events && EPOLLOUT;
-                    printf("cl.event.ELSE(bef): result=%i\n", t);
-                }
-
-
-                //memset(rbuff, 0, 1024);
-                //printf("FD.2.rec=%zd\n", bytes_read);
-                /*
-                printf("server.recv=%s\n", rbuff);
-                int del = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, cur_fd, &ev);
-
-                if (del == -1) {
-                    printf("epoll_ctl: EPOLL_CTL_DEL\n");
-                    return -1;
-                }
-
-                printf("client=%i cur.fd=%i\n", client_fd, cur_fd);
-                close(client_fd);
-                */
-            }
-        }
-    }
-
-    printf("serv.end\n");
 
     return socket_fd;
 }
