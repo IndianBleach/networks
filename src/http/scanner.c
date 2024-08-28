@@ -2,14 +2,16 @@
 
 #include <ctype.h>
 
-const char *keywords_lookup[KEYWRD_END] = {
-    [GET] = "GET",
-    [POST] = "POST",
-    [HTTP] = "HTTP",
+const char *keywords_lookup[K_END] = {
+    [K_GET] = "GET",
+    [K_POST] = "POST",
+    [K_PUT] = "PUT",
+
+    [K_HTTP] = "HTTP",
 };
 
 int find_keyword(const char *str) {
-    for (int i = 0; i < KEYWRD_END; i++) {
+    for (int i = 0; i < K_END; i++) {
         if (strcmp(keywords_lookup[i], str) == 0)
             return i;
     }
@@ -203,7 +205,7 @@ void identifier(scanner *scnr, token *tkn) {
     substrncpy(scnr, tkn->lexeme, MAX_ID_LEN);
     int keywrd = find_keyword(tkn->lexeme);
     if (keywrd != UNKNWN) {
-        tkn->type = KEYWORD;
+        tkn->type = keywrd;
     } else {
         tkn->type = IDENTIFIER;
     }
@@ -212,10 +214,8 @@ void identifier(scanner *scnr, token *tkn) {
 int main(void) {
     // TODO: cover scanner with tests
     scanner *scnr = malloc(sizeof(scanner));
-    char *test_nums = "-abc---- -0 -11 1 1 222 -0.1 -.-11 0..11 12.345678 / * //// *12 n123";
-    char *test_id = "..a 22a a22 hello.world a-a-a-a-13-2-2-2-2- nigagagaga";
-    char *test_keywrd = "\r\n";
-    scanner_init(scnr, test_nums);
+    char *test = "GET HHTP HTTP PUT -abc- -GET- HTTP123";
+    scanner_init(scnr, test );
     scan(scnr);
     scanner_print_tokens(scnr);
     scanner_destroy(scnr);

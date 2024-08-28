@@ -20,9 +20,19 @@
 typedef char *trusted_str;
 
 enum token_type {
-    IDENTIFIER,
-    KEYWORD,
 
+    // KEYWORDS
+    K_GET,
+    K_POST,
+    K_PUT,
+    /*
+     * ...
+    */
+
+    K_HTTP,
+    K_END,
+
+    IDENTIFIER,
     // maybe unneccesary
     INT,
     FLOAT,
@@ -46,9 +56,7 @@ enum token_type {
     TKN_END,
 };
 
-enum keywords { GET, POST, HTTP, KEYWRD_END };
-
-extern const char *keywords_lookup[KEYWRD_END];
+extern const char *keywords_lookup[K_END];
 
 typedef struct {
     enum token_type type;
