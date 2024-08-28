@@ -64,10 +64,10 @@ int vector_shrink(vector *v) {
     return 0;
 }
 
-void vector_rmv_at(vector *v, size_t at) {
-    // TODO
-    return;
-}
+// TODO
+// void vector_rmv_at(vector *v, size_t at) {
+//     return;
+// }
 
 void vector_rmv_last(vector *v) {
     if (v->len == 0)

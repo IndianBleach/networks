@@ -116,7 +116,11 @@ token *next_token(scanner *scnr) {
                 return tkn;
             }
             case '-': {
-                token_create(tkn, DASH, "-");
+                if (isdigit(peek())) {
+                    move();
+                    number(scnr, tkn);
+                } else 
+                    token_create(tkn, DASH, "-");
                 break;
             }
             case '/': {
@@ -128,7 +132,7 @@ token *next_token(scanner *scnr) {
                 break;
             }
             case ';': {
-                token_create(tkn, SEMICOLON, ":");
+                token_create(tkn, SEMICOLON, ";");
                 break;
             }
             case '*': {
@@ -167,8 +171,7 @@ void scan(scanner *scnr) {
     vector_push_back(scnr->tokens, &tkn);
 }
 
-void substrncpy(scanner *scnr, char *dst, int n) {
-    // size_t substr_len = () ? scnr->cursor - scnr->start : n;
+void substrncpy(scanner *scnr, char *dst, size_t n) {
     if (scnr->cursor - scnr->start < n)
         n = scnr->cursor - scnr->start;
     memcpy(dst, scnr->input + scnr->start, n);
@@ -209,10 +212,10 @@ void identifier(scanner *scnr, token *tkn) {
 int main(void) {
     // TODO: cover scanner with tests
     scanner *scnr = malloc(sizeof(scanner));
-    char *test_nums = "0 11 1 1 222 0.1 .11 0..11 12.345678 / * //// *12 n123";
+    char *test_nums = "-abc---- -0 -11 1 1 222 -0.1 -.-11 0..11 12.345678 / * //// *12 n123";
     char *test_id = "..a 22a a22 hello.world a-a-a-a-13-2-2-2-2- nigagagaga";
     char *test_keywrd = "\r\n";
-    scanner_init(scnr, test_keywrd);
+    scanner_init(scnr, test_nums);
     scan(scnr);
     scanner_print_tokens(scnr);
     scanner_destroy(scnr);

@@ -22,8 +22,8 @@ DEPS = $(BUILD_DIR)/vector.o
 
 
 
-format:
-	clang-format-14 -i $(SOURCES) $(HEADERS) 
+# format:
+# 	clang-format-14 -i $(SOURCES) $(HEADERS) 
 
 server: format
 	$(GCC) $(FLAGS) $(SRC_DIR)/http/server/server.c -o $(BUILD_PATH)
@@ -31,7 +31,7 @@ server: format
 test: test
 	$(GCC) $(FLAGS) -c $(SRC_DIR)/http/server/new.c -o $(BUILD_OBJ)
 
-vector: format
+vector:
 	$(GCC) $(FLAGS) -c $(UTILS_SRC_DIR)/vector.c -o $(BUILD_DIR)/vector.o
 
 all: vector format
