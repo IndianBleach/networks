@@ -22,7 +22,7 @@ DEPS = $(BUILD_DIR)/vector.o
 
 
 server:
-	$(GCC) $(FLAGS) $(SRC_DIR)/http/server/server.c -o $(BUILD_PATH)
+	$(GCC) $(FLAGS) $(SRC_DIR)/http/server/server.c -o $(BUILD_OBJ)
 
 test: test
 	$(GCC) $(FLAGS) -c $(SRC_DIR)/http/server/new.c -o $(BUILD_OBJ)
