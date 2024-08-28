@@ -34,10 +34,10 @@ all: vector
 	$(GCC) $(FLAGS) $(SOURCES)
 
 scanner: vector
-	$(GCC) $(FLAGS) $(DEPS) $(SRC_DIR)/http/scanner.c -o $(BUILD_DIR)/scanner
+	$(GCC) $(FLAGS) $(DEPS) $(SRC_DIR)/http/token.c $(SRC_DIR)/http/scanner.c -o $(BUILD_DIR)/scanner
 
 parser: vector
-	$(GCC) $(FLAGS) $(DEPS) $(SRC_DIR)/http/parser.c $(SRC_DIR)/http/scanner.c -o $(BUILD_DIR)/parser
+	$(GCC) $(FLAGS) $(DEPS) $(SRC_DIR)/http/token.c $(SRC_DIR)/http/parser.c $(SRC_DIR)/http/scanner.c -o $(BUILD_DIR)/parser
 
 clean:
 	# cd $(BUILD_DIR)

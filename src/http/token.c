@@ -1,9 +1,4 @@
 #include "token.h"
-void token_create(token *tkn, enum token_type type, trusted_str lexeme) {
-    tkn->type = type;
-    tkn->lexeme = (trusted_str) malloc(strlen(lexeme) + 1);
-    strcpy(tkn->lexeme, lexeme);
-}
 
 void token_destroy(token *tkn) { free(tkn->lexeme); }
 
@@ -21,4 +16,10 @@ void token_print(token *tkn) {
             printf("Token %s\n", tkn->lexeme);
         }
     }
+}
+
+void token_create(token *tkn, enum token_type type, trusted_str lexeme) {
+    tkn->type = type;
+    tkn->lexeme = (trusted_str) malloc(strlen(lexeme) + 1);
+    strcpy(tkn->lexeme, lexeme);
 }

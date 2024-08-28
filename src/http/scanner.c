@@ -18,11 +18,6 @@ int find_keyword(const char *str) {
     return UNKNWN;
 }
 
-int is_method(int type) {
-    return K_M_START < type && type < K_M_FIN;
-}
-
-
 void scanner_init(scanner *scnr, const trusted_str input) {
     scnr->len = strlen(input);
     scnr->cursor = scnr->start = 0;

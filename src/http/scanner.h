@@ -1,10 +1,10 @@
 #pragma once
+#include "token.h"
+
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <vector.h>
-
-#include "token.h"
 
 #define MAX_NUMBER_LEN 15
 #define MAX_ID_LEN 15
