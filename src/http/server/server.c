@@ -3,12 +3,15 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -30,12 +33,12 @@ struct serverconfig {
     int server_max_con;
 };
 
-#include <sys/epoll.h>
-
 char resp2[] = "HTTP/1.0 200 OK\r\n"
                "Server: webserver-c\r\n"
                "Content-type: text/html\r\n\r\n"
                "<html>hello, world</html>\r\n";
+
+#pragma region sockets.epoll
 
 void epoll_del(int epoll_fd, int fd, int state) {
     struct epoll_event ev;
@@ -58,16 +61,18 @@ void epoll_add(int epoll_fd, int fd, int state) {
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev);
 }
 
-#include <fcntl.h>
+#pragma endregion
 
-void do_read(int epollfd, int fd, char *buf) {
+#pragma region sockets.fd.operations
+
+void fd_read(int epollfd, int fd, char *buf) {
     int nread;
     if (fd <= 0) {
         return;
     }
 
-    printf("sock.read: buff=%p epoll=%i fd=%i\n", buf, epollfd, fd);
-    perror("last err: ");
+    //printf("sock.read: buff=%p epoll=%i fd=%i\n", buf, epollfd, fd);
+    //perror("last err: ");
 
     nread = read(fd, buf, 1024);
     if (nread == -1) {
@@ -79,46 +84,24 @@ void do_read(int epollfd, int fd, char *buf) {
         close(fd);                       // Remember Close FD
         epoll_del(epollfd, fd, EPOLLIN); // Delete monitor
     } else {
-        printf("read message is : %s\n", buf);
+        //printf("read message is : %s\n", buf);
         // Modify the event corresponding to the descriptor, and write it to write
         epoll_mod(epollfd, fd, EPOLLOUT);
     }
 }
 
-void serv_handle_accept(int epoll_fd, int server_fd) {
-    // ACCEPT NEW
-    //printf("cl.serv_handle_accept.\n", server_fd);
-    int clfd;
-    clfd = accept(server_fd, NULL, NULL);
-
-    if (clfd < 0) {
-        //printf("cl.serv_handle_accept<0\n");
-        return;
-    }
-
-    printf("cl.serv_handle_accept. cl=%i\n", clfd);
-
-    int err;
-    err = fcntl(server_fd, F_SETFL, O_NONBLOCK);
-    assert(!err);
-
-    epoll_add(epoll_fd, clfd, EPOLLIN | EPOLLOUT | EPOLLET);
-
-    perror("cl.accept: ");
-}
-
-void do_write(int epollfd, int fd, char *buf) {
+void fd_write(int epollfd, int fd, char *buf) {
     int nwrite;
 
-    printf("sock.write: buff=%p epoll=%i fd=%i\n", buf, epollfd, fd);
-    perror("last err: ");
+    //printf("sock.write: buff=%p epoll=%i fd=%i\n", buf, epollfd, fd);
+    //perror("last err: ");
 
     if (fd <= 0) {
         return;
     }
 
     nwrite = write(fd, buf, strlen(buf));
-    printf("sock.write.res: sended=%i\n", nwrite);
+    //printf("sock.write.res: sended=%i\n", nwrite);
     if (nwrite == -1) {
         perror("err.do_write\n");
         close(fd);                        // Remember Close FD
@@ -129,7 +112,53 @@ void do_write(int epollfd, int fd, char *buf) {
     //memset(buf, 0, 1024);
 }
 
+void fd_lsaccept(int epoll_fd, int server_fd) {
+    // ACCEPT NEW
+    //printf("cl.serv_handle_accept.\n", server_fd);
+    int clfd;
+    clfd = accept(server_fd, NULL, NULL);
+
+    if (clfd < 0) {
+        //printf("cl.serv_handle_accept<0\n");
+        return;
+    }
+
+    //printf("cl.serv_handle_accept. cl=%i\n", clfd);
+
+    int err;
+    err = fcntl(server_fd, F_SETFL, O_NONBLOCK);
+    assert(!err);
+
+    epoll_add(epoll_fd, clfd, EPOLLIN | EPOLLOUT | EPOLLET);
+
+    //perror("cl.accept: ");
+}
+
+#pragma endregion
+
+// sock.up()
+//
+
+// debug
+struct server_debuginfo {
+    pthread_mutex_t _lock;
+    int total_requests;
+} debuginfo;
+
+pthread_mutex_t _lock;
+
+void debuginfo_req_inc() {
+    pthread_mutex_lock(&_lock);
+    debuginfo.total_requests++;
+    pthread_mutex_unlock(&_lock);
+}
+
+// ___
+
 int server_start(serverconfig *config) {
+    pthread_t tid = pthread_self();
+    printf("node.%lu started.\n", tid);
+
     // config.epoll
     struct epoll_event ev;
     struct epoll_event poll_events[config->io.epoll_max_events];
@@ -158,6 +187,10 @@ int server_start(serverconfig *config) {
         return -1;
     }
 
+    // socket config
+    int reuse = 1;
+    setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse));
+
     // bind
     if (bind(socket_fd, parseaddr->ai_addr, parseaddr->ai_addrlen)) {
         printf("bind\n");
@@ -172,7 +205,6 @@ int server_start(serverconfig *config) {
         return -1;
     }
 
-
     // fix: sepr
     int client_fd;
     ssize_t bytes_read;
@@ -182,9 +214,9 @@ int server_start(serverconfig *config) {
     epoll_add(epoll_fd, socket_fd, EPOLLIN);
 
     while (1) {
-        printf("epoll.new\n");
+        //printf("epoll.new\n");
         int ret = epoll_wait(epoll_fd, poll_events, config->io.epoll_max_events, -1);
-        printf("epoll.ret=%i\n", ret);
+        //printf("epoll.ret=%i\n", ret);
 
         if (ret == -1) {
             perror("epoll_wait: \n");
@@ -192,37 +224,54 @@ int server_start(serverconfig *config) {
 
         for (int i = 0; i < ret; i++) {
             client_fd = poll_events[i].data.fd;
-            if ((client_fd == socket_fd) && (poll_events[i].events & EPOLLIN))
-                serv_handle_accept(epoll_fd, socket_fd);
-            else if (poll_events[i].events & EPOLLIN) {
-                printf("event.EPOLLIN\n");
-                do_read(epoll_fd, client_fd, rbuff);
+            if ((client_fd == socket_fd) && (poll_events[i].events & EPOLLIN)) {
+                printf("node.%lu: ACCEPT.\n", tid);
+                fd_lsaccept(epoll_fd, socket_fd);
+            } else if (poll_events[i].events & EPOLLIN) {
+                printf("node.%lu: EPOLLIN.\n", tid);
+                fd_read(epoll_fd, client_fd, rbuff);
             } else if (poll_events[i].events & EPOLLOUT) {
-                printf("event.EPOLLOUT\n");
-                do_write(epoll_fd, client_fd, resp2);
+                printf("node.%lu: EPOLLOUT.\n", tid);
+                fd_write(epoll_fd, client_fd, resp2);
+                debuginfo_req_inc();
             }
         }
+
+        printf("debug.request_count=%i\n", debuginfo.total_requests);
     }
 
     return socket_fd;
 }
 
-int main() {
-    printf("start5. !\n");
+pthread_t lsnode_run(serverconfig *config) {
+    pthread_t t;
+    pthread_create(&t, NULL, server_start, config);
+    return t;
+}
 
-    printf("st=%u\n", EPOLLOUT);
+int main() {
+    // thread.a (new socket, ls)
+    // thread.b (new socket, ls)
 
     serverconfig config;
     config.server_ip = "127.0.0.1";
     config.server_max_con = 50;
-    config.server_port = "8010";
+    config.server_port = "8012";
     config.host_addr.ai_family = AF_INET;
     config.host_addr.ai_socktype = SOCK_STREAM;
     config.host_addr.ai_flags = AI_PASSIVE;
     config.host_addr.ai_protocol = IPPROTO_TCP;
     config.io.epoll_max_events = 50;
 
-    server_start(&config);
+    //server_start(&config);
+
+    pthread_t t1 = lsnode_run(&config);
+    pthread_t t2 = lsnode_run(&config);
+
+    pthread_join(t1, NULL);
+    printf("node thread end.\n");
+    pthread_join(t2, NULL);
+    printf("node thread end.\n");
 
     printf("end. !\n");
     return 0;
