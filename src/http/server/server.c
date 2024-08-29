@@ -149,8 +149,9 @@ struct ntnode_addr {
 };
 
 struct ntnode_scale {
-    uint sockets_per_port;
+    uint listeres_per_port;
     uint epoll_events_cap;
+    uint max_listen_connections;
 };
 
 struct ntserver_scale {
@@ -173,11 +174,12 @@ struct ntnode_config {
     int ntnode_run()
     - run ntnode
 
-    httpresponse
-    -new()...
-    -BUILDER
-    httprequest
-    -parse()..
+    httpapi.handle(request, &httpresponse);
+        httpresponse
+        -new()...
+        -BUILDER
+        httprequest
+        -parse()..
 
     todo:
     - read long body
@@ -201,57 +203,77 @@ void debuginfo_req_inc() {
     pthread_mutex_lock(&debuginfo._lock);
     debuginfo.total_requests++;
     pthread_mutex_unlock(&debuginfo._lock);
-}
+};
 
-// ___
-
-int server_start(serverconfig *config) {
+int sock_listen(ntnode_config *config) {
     pthread_t tid = pthread_self();
     printf("node.%lu started.\n", tid);
 
-    // config.epoll
-    struct epoll_event ev;
-    struct epoll_event poll_events[config->io.epoll_max_events];
-    int epoll_fd;
-    int nfds;
+    //printf("config.name=%s\n", config->node_name);
 
-    epoll_fd = epoll_create1(0);
-    if (epoll_fd == -1) {
-        printf("epoll_create1\n");
-        return -1;
-    }
-
-    struct addrinfo *parseaddr;
-
-    // get addr
+    struct addrinfo *host_addr_parsed;
     int status;
-    if ((status = getaddrinfo(config->server_ip, config->server_port, &config->host_addr, &parseaddr)) == -1) {
-        fprintf(stderr, "getaddrinfo(): %s\n", gai_strerror(status));
+    if ((status = getaddrinfo(config->addr.ip, config->addr.port, &config->host, &host_addr_parsed)) == -1) {
+        fprintf(stderr, "sock_listen.getaddrinfo: %s\n", gai_strerror(status));
         return -1;
     }
 
     // create socket
     int socket_fd;
-    if ((socket_fd = socket(parseaddr->ai_family, parseaddr->ai_socktype, parseaddr->ai_protocol)) == -1) {
-        printf("socket\n");
+    if ((socket_fd =
+             socket(host_addr_parsed->ai_family, host_addr_parsed->ai_socktype, host_addr_parsed->ai_protocol)) == -1) {
+        perror("sock_listen.socket:");
         return -1;
     }
 
-    // socket config
+    // hard config
     int reuse = 1;
     setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse));
 
-    // bind
-    if (bind(socket_fd, parseaddr->ai_addr, parseaddr->ai_addrlen)) {
-        printf("bind\n");
+    if (bind(socket_fd, host_addr_parsed->ai_addr, host_addr_parsed->ai_addrlen)) {
+        perror("sock_listen.bind:");
+        freeaddrinfo(host_addr_parsed);
         return -1;
     }
 
-    freeaddrinfo(parseaddr);
+    freeaddrinfo(host_addr_parsed);
 
-    // fix maybe add_event
-    if (listen(socket_fd, config->server_max_con) == -1) {
-        printf("listen\n");
+    if (listen(socket_fd, config->scale.max_listen_connections) == -1) {
+        perror("sock_listen.listen: ");
+        return -1;
+    }
+
+    return socket_fd;
+};
+
+#include <pthread.h>
+
+typedef pthread_t tid;
+
+struct ntnode_api {
+    tid *listeners;
+    const char *node_name;
+};
+
+/// fn: sock_up_single(tid*)
+/// params: tid='thread to be initialized'
+/// desc: запускает в отдельном потоке epoll прослушивателя для сокета
+/// ret:
+void sock_up_single(ntnode_config *config) {
+    pthread_t tid = pthread_self();
+    printf("node.[%s]> sock.up() thread=%lu.\n", config->node_name, tid);
+
+    //printf("config.name=%s\n", config->node_name);
+    int socket_fd = sock_listen(config);
+
+    // config.epoll
+    struct epoll_event ev;
+    struct epoll_event poll_events[config->scale.epoll_events_cap];
+    int epoll_fd;
+    int nfds;
+
+    if ((epoll_fd = epoll_create1(0)) == -1) {
+        perror("ntnode_run.epoll_create1:");
         return -1;
     }
 
@@ -264,12 +286,9 @@ int server_start(serverconfig *config) {
     epoll_add(epoll_fd, socket_fd, EPOLLIN);
 
     while (1) {
-        //printf("epoll.new\n");
-        int ret = epoll_wait(epoll_fd, poll_events, config->io.epoll_max_events, -1);
-        //printf("epoll.ret=%i\n", ret);
-
+        int ret = epoll_wait(epoll_fd, poll_events, config->scale.epoll_events_cap, -1);
         if (ret == -1) {
-            perror("epoll_wait: \n");
+            perror("ntnode_run.epoll_wait: ");
         }
 
         for (int i = 0; i < ret; i++) {
@@ -287,34 +306,80 @@ int server_start(serverconfig *config) {
             }
         }
 
-        printf("debug.request_count=%i\n", debuginfo.total_requests);
+        //printf("debug.request_count=%i\n", debuginfo.total_requests);
     }
 
     return socket_fd;
 }
 
-pthread_t lsnode_run(serverconfig *config) {
-    pthread_t t;
-    pthread_create(&t, NULL, server_start, config);
-    return t;
-}
+/// fn: sock_up_parallel(tid* tids, int count)
+/// params: tids='threads to be initialized' count='tids count'
+/// desc: запускает в отдельном потоке epoll прослушивателя для сокета
+/// ret:
+//void sock_up_parallel(tid *tid) { pthread_create(tid, ) }
+
+/*
+
+*/
+
+/*
+    listener_fd_thread* ntnode_up()
+    запускает ноду в отдельном потоке
+*/
+
+/*
+    ntnode_api
+        tid* listeners;
+        node_name name;
+
+*/
+
+
+// sock_close
+// listener_close
+// destr()
+
+
+/*
+    ntnode_api* ntnode_up(tid*)
+    запускает ноду в отдельном потоке <tid>
+    нода запускает в свою очередь множество прослушивателей на сокет согласно настройке <config>
+    ret: ntnode_api с информацией о ноде
+*/
+
+
+int ntnode_run(ntnode_config *config) {}
+
+void ntnode_up(pthread_t *tid, ntnode_config *config) { pthread_create(tid, NULL, ntnode_run, config); }
+
+#define SCALE_EPOLL_EVENTS_CAP 1000
+#define SCALE_SOCK_LISTENER_MAX_CON 1000
+#define SCALE_LS_PER_NODE 2
+#define ADDR_NODE_IP "127.0.0.1"
+#define ADDR_NODE_PORT "8011"
 
 int main() {
     // thread.a (new socket, ls)
     // thread.b (new socket, ls)
 
-    serverconfig config;
-    config.server_ip = "127.0.0.1";
-    config.server_max_con = 50;
-    config.server_port = "8012";
-    config.host_addr.ai_family = AF_INET;
-    config.host_addr.ai_socktype = SOCK_STREAM;
-    config.host_addr.ai_flags = AI_PASSIVE;
-    config.host_addr.ai_protocol = IPPROTO_TCP;
-    config.io.epoll_max_events = 50;
+    ntnode_config config;
+    ntnode_scale node_scale;
+    node_scale.epoll_events_cap = SCALE_EPOLL_EVENTS_CAP;
+    node_scale.listeres_per_port = SCALE_LS_PER_NODE;
+    node_scale.max_listen_connections = SCALE_SOCK_LISTENER_MAX_CON;
+    config.scale = node_scale;
+    config.addr.ip = ADDR_NODE_IP;
+    config.addr.port = ADDR_NODE_PORT;
+    config.host.ai_family = AF_INET;
+    config.host.ai_protocol = IPPROTO_TCP;
+    config.host.ai_socktype = SOCK_STREAM;
+    config.host.ai_flags = AI_PASSIVE;
+    config.node_name = "node.a";
+
+    sock_up_single(&config);
 
     //server_start(&config);
-
+    /*
     pthread_t t1 = lsnode_run(&config);
     pthread_t t2 = lsnode_run(&config);
 
@@ -323,6 +388,7 @@ int main() {
     pthread_join(t2, NULL);
     printf("node thread end.\n");
 
+*/
     printf("end. !\n");
     return 0;
 }
