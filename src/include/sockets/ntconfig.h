@@ -2,7 +2,8 @@
 #define _SOCKETS_NTCONFIG
 
 #define _GNU_SOURCE
-#include "include/types.h"
+#include "../include/types.h"
+
 #include <netdb.h>
 
 typedef struct ntnode_addr ntnode_addr;

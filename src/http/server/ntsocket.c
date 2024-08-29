@@ -1,7 +1,8 @@
-#include "include/sockets/epoll.h"
-#include "include/sockets/epollfd.h"
-#include "include/sockets/ntconfig.h"
-#include "include/types.h"
+#include "../include/sockets/ntsocket.h"
+
+#include "../include/sockets/epoll.h"
+#include "../include/sockets/epollfd.h"
+#include "../include/types.h"
 
 #include <netdb.h>
 #include <pthread.h>
@@ -22,7 +23,7 @@ char resp2[] = "HTTP/1.0 200 OK\r\n"
 /// PARAMS: config='config with ip, port, scaling and epoll metadata'
 /// DESC: запускает и начинает прослушивать сокет на указанном в <config> адресе
 /// RET: socket file descriptor (socket_fd)
-int sock_listen(ntnode_config *config) {
+int ntsock_listen(ntnode_config *config) {
     pthread_t tid = pthread_self();
     printf("node.%lu started.\n", tid);
 
@@ -67,12 +68,12 @@ int sock_listen(ntnode_config *config) {
 /// PARAMS: tid='thread to be initialized'
 /// DESC: запускает в отдельном потоке epoll прослушивателя для сокета
 /// RET:
-void sock_io_run(ntnode_config *config) {
+void ntsock_io_run(ntnode_config *config) {
     pthread_t tid = pthread_self();
     printf("node.[%s]> sock.up() thread=%lu.\n", config->node_name, tid);
 
     //printf("config.name=%s\n", config->node_name);
-    int socket_fd = sock_listen(config);
+    int socket_fd = ntsock_listen(config);
 
     // config.epoll
     struct epoll_event ev;
@@ -124,8 +125,8 @@ void sock_io_run(ntnode_config *config) {
 /// PARAMS: tids='threads to be initialized' count='tids count'
 /// DESC: запускает в отдельном потоке epoll прослушивателя для сокета
 /// RET:
-void sock_io_up(ntnode_config *config, tid *tids, int count) {
+void ntsock_io_up(ntnode_config *config, tid *tids, int count) {
     for (int i = 0; i < count; i++) {
-        pthread_create(&tids[i], NULL, sock_io_run, config);
+        pthread_create(&tids[i], NULL, ntsock_io_run, config);
     }
 }
