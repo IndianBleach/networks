@@ -32,6 +32,7 @@ int ntsock_listen(ntnode_config *config) {
     struct addrinfo *host_addr_parsed;
     int status;
     if ((status = getaddrinfo(config->addr.ip, config->addr.port, &config->host, &host_addr_parsed)) == -1) {
+        perror("ntsock_listen.getaddrinfo: ");
         fprintf(stderr, "sock_listen.getaddrinfo: %s\n", gai_strerror(status));
         return -1;
     }
@@ -61,6 +62,7 @@ int ntsock_listen(ntnode_config *config) {
         return -1;
     }
 
+    printf("sock=%i\n", socket_fd);
     return socket_fd;
 };
 

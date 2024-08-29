@@ -34,4 +34,5 @@ struct ntnode_config {
     addrinfo host;
 };
 
+
 #endif
