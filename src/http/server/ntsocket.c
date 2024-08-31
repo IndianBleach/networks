@@ -13,6 +13,23 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+// ssl
+#define SSL_PUBKEY_PATH "/home/gcreep/github.local/networks/ssl/local.pem"
+#define SSL_PRIVKEY_PATH "/home/gcreep/github.local/networks/ssl/local.pem"
+
+#include "../include/sockets/ssl/ntssl.h"
+
+//#include "openssl-master/ms/applink.c"
+
+
+int file_exists(const char *ln) {
+    if (access(ln, F_OK) == 0) {
+        return 1;
+    } else {
+        return -1;
+    }
+}
+
 // fix: sepr (httpresponse)
 char resp2[] = "HTTP/1.0 200 OK\r\n"
                "Server: webserver-c\r\n"
@@ -62,7 +79,7 @@ int ntsock_listen(ntnode_config *config) {
         return -1;
     }
 
-    printf("sock=%i\n", socket_fd);
+    printf("ntsock_liste=ok. socket_fd=%i\n", socket_fd);
     return socket_fd;
 };
 
@@ -76,6 +93,33 @@ void ntsock_io_run(ntnode_config *config) {
 
     //printf("config.name=%s\n", config->node_name);
     int socket_fd = ntsock_listen(config);
+
+    // ssl
+    SSL_CTX *sslctx;
+    SSL *cssl;
+    ssl_init();
+    sslctx = SSL_CTX_new(SSLv23_server_method());
+    // ssl.options
+    SSL_CTX_set_options(sslctx, SSL_OP_SINGLE_DH_USE);
+
+    printf("ssl.init=ok\n");
+
+    if (file_exists(SSL_PUBKEY_PATH) == -1) {
+        printf("ssl.err=FILE_NO_EXISTS, SSL_PUBKEY\n");
+        ssl_dstr();
+    }
+
+
+    if (file_exists(SSL_PRIVKEY_PATH) == -1) {
+        printf("ssl.err=FILE_NO_EXISTS, SSL_PRIVKEY\n");
+        ssl_dstr();
+    }
+
+    // ssl.certificates
+    int use_cert = SSL_CTX_use_certificate_file(sslctx, SSL_PUBKEY_PATH, SSL_FILETYPE_PEM);
+    int use_pkey = SSL_CTX_use_PrivateKey_file(sslctx, SSL_PRIVKEY_PATH, SSL_FILETYPE_PEM);
+
+    printf("ssl.use: cert=%i pkey=%i\n", use_cert, use_pkey);
 
     // config.epoll
     struct epoll_event ev;
@@ -104,15 +148,22 @@ void ntsock_io_run(ntnode_config *config) {
 
         for (int i = 0; i < ret; i++) {
             client_fd = poll_events[i].data.fd;
+
             if ((client_fd == socket_fd) && (poll_events[i].events & EPOLLIN)) {
                 printf("node.%lu: ACCEPT.\n", tid);
-                fd_lsaccept(epoll_fd, socket_fd);
+                //fd_lsaccept(epoll_fd, socket_fd);
+
+                cssl = SSL_new(sslctx);
+                printf("ssl.new()\n");
+
+                fdssl_accept(epoll_fd, socket_fd, sslctx, cssl);
             } else if (poll_events[i].events & EPOLLIN) {
                 printf("node.%lu: EPOLLIN.\n", tid);
-                fd_read(epoll_fd, client_fd, rbuff);
+                fdssl_read(epoll_fd, client_fd, rbuff, cssl);
+                //fdssl_read(epoll_fd, client_fd, rbuff, cssl);
             } else if (poll_events[i].events & EPOLLOUT) {
                 printf("node.%lu: EPOLLOUT.\n", tid);
-                fd_write(epoll_fd, client_fd, resp2);
+                fdssl_write(epoll_fd, client_fd, resp2, cssl);
                 debuginfo_req_inc();
             }
         }

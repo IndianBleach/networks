@@ -1,9 +1,10 @@
+#define _GNU_SOURCE
+
 #include "../include/sockets/epoll.h"
 #include "../include/sockets/epollfd.h"
 #include "../include/sockets/ntconfig.h"
 #include "../include/sockets/ntsocket.h"
 
-#include <netdb.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +12,7 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
 
 #define SCALE_EPOLL_EVENTS_CAP 1000
 #define SCALE_SOCK_LISTENER_MAX_CON 1000
@@ -45,26 +47,9 @@ int main() {
 
     ntnode_config c1;
     ntconfig_init(&c1);
-
-    ntnode_config c2;
-    ntconfig_init(&c2);
-
-    ntnode_config c3;
-    ntconfig_init(&c3);
-
-    c2.addr.port = "8010";
-
     tid *t1;
-    tid *t2;
-    tid *t3;
-
     ntsock_io_up(&c1, &t1, 1);
-    ntsock_io_up(&c2, &t2, 1);
-    ntsock_io_up(&c3, &t3, 1);
-
     pthread_join(t1, NULL);
-    pthread_join(t2, NULL);
-    pthread_join(t3, NULL);
 
     printf("test.end\n");
 

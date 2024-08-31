@@ -7,9 +7,11 @@ BUILD_OBJ = src.out
 BUILD_PATH = $(BUILD_DIR)/$(BUILD_OBJ)
 
 INCLUDE_FLAGS=-I ./src/include
+SSL_FLAGS = -lssl -lcrypto
 
 GCC = gcc
-MAIN_FLAGS = -std=c99 -g -O0 $(INCLUDE_FLAGS)
+MAIN_FLAGS = -std=c99 -g -O0 $(INCLUDE_FLAGS) $(SSL_FLAGS)
+
 # WARNINGS_FLAGS = -Wall -Wextra -Wpedantic -Wduplicated-branches -Wduplicated-cond -Wcast-qual -Wconversion -Wsign-conversion -Wlogical-op -Werror
 WARNINGS_FLAGS = -Wall -Wextra -Wpedantic -Wduplicated-branches -Wduplicated-cond -Wcast-qual -Wconversion -Wsign-conversion -Wlogical-op
 SANITIZER_FLAGS = -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=leak -fsanitize=undefined -fsanitize-address-use-after-scope
