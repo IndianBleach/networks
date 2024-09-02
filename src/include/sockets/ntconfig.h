@@ -5,6 +5,9 @@
 #include "../include/types.h"
 
 #include <netdb.h>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 typedef struct ntnode_addr ntnode_addr;
 typedef struct ntnode_scale ntnode_scale;
