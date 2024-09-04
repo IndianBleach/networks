@@ -83,11 +83,12 @@ void parse(httpreq_buff *buff) {
             level++;
         }
 
-        int read_len;
-        read_len = get_word(&ctx);
-        if (read_len > 0) {
-            printf("deep.get_word\n");
-            // parsing variants
+        int base_len;
+
+        printf("cur=%c\n", ctx.buff[ctx.cursor]);
+
+        if ((base_len = get_word(&ctx)) > 0) {
+            // variants
             int local_len = 0;
 
             // getPath
@@ -105,9 +106,9 @@ void parse(httpreq_buff *buff) {
                 token_dump(tail);
             } else {
                 printf("get_word=%i curs=%i\n", local_len, ctx.cursor);
-                tail->next = token_new_at(word, &ctx.buff[ctx.cursor], read_len);
+                tail->next = token_new_at(word, &ctx.buff[ctx.cursor], base_len);
                 tail = tail->next;
-                ctx_move(&ctx, read_len);
+                ctx_move(&ctx, base_len);
                 token_dump(tail);
             }
 
@@ -119,12 +120,66 @@ void parse(httpreq_buff *buff) {
             // getTag()
             // getLongWord
         }
+        if ((base_len = get_string(&ctx)) > 0) {
+            // variants
+            // --version
+            // --addr
+
+            printf("get_string=%i\n", base_len);
+            tail->next = token_new_at(string, &ctx.buff[ctx.cursor], base_len);
+            tail = tail->next;
+            ctx_move(&ctx, base_len);
+            token_dump(tail);
+            continue;
+        }
+        if ((base_len = get_number(&ctx)) > 0) {
+            printf("get_number=%i\n", base_len);
+            tail->next = token_new_at(number, &ctx.buff[ctx.cursor], base_len);
+            tail = tail->next;
+            ctx_move(&ctx, base_len);
+            token_dump(tail);
+            continue;
+        }
+
+        // isNumber=float|int
+
+        // isSymbol
+        // --description
 
         ctx.cursor++;
     }
 }
 
 // utils
+
+
+// return len("len(word)")
+// "win" -> 5
+int get_string(parse_context *ctx) {
+    int local = ctx->cursor;
+    int size = 0;
+    if (ctx->buff[local] == '"') {
+        // read until end tag
+        local++;
+        size++;
+
+        while (local < ctx->end) {
+            if (ctx->buff[local] == '"') {
+                return size;
+            }
+
+            if (ctx->buff[local] == '\n') {
+                return -1;
+            }
+
+            local++;
+            size++;
+        }
+    }
+
+    return -1;
+}
+
 int is_enum_value(parse_context *ctx, int local_end) {
     int i = ctx->cursor;
 
@@ -211,12 +266,47 @@ int get_word(parse_context *ctx) {
     return size;
 }
 
-char ctx_at(parse_context *ctx, unsigned int pos) {
+char ctx_at(parse_context *ctx, int pos) {
     if (pos > ctx->end) {
         return ctx->buff[ctx->end];
     }
 
     return ctx->buff[pos];
+}
+
+// [32.1] [32] [123.0.4.2].<other symbol>
+int get_number(parse_context *ctx) {
+    int local = ctx->cursor;
+    int last_seg = 0;
+    int size = 0;
+
+    while (local < ctx->end && ctx->buff[local] >= '0' && ctx->buff[local] <= '9') {
+        local++;
+        size++;
+        if (local < ctx->end && ctx->buff[local] == '.') {
+            local++;
+            size++;
+            last_seg = local;
+        }
+    }
+
+    if (last_seg > 0) {
+        //char next = ctx->buff[last_seg];
+        char next = ctx_at(ctx, last_seg);
+        //char next = ctx_at(ctx, last_seg + 1);
+        //printf("NEXT=%c seg=%i\n", next, last_seg);
+        if (next <= '0' || next >= '9') {
+            return --size;
+        }
+        { return size; }
+    }
+
+    if (size > 0) {
+        return size;
+    }
+
+
+    return -1;
 }
 
 int getm_path(parse_context *ctx) {
@@ -269,7 +359,7 @@ int get_tag(parse_context *ctx) {
 int main() {
     printf("test2.start\n");
 
-    const char *t = "connection: apple_swww/fd/d opdos wdqwdq\0";
+    const char *t = "connection: \"long\" 17.2\0";
 
     httpreq_buff *reqbuff = reqbuff_new(1024);
 
