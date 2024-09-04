@@ -42,6 +42,7 @@ void ntconfig_init(ntnode_config *config) {
     config->node_name = "node.a";
 }
 
+/*
 int main() {
     printf("test.start\n");
 
@@ -55,3 +56,4 @@ int main() {
 
     return 0;
 }
+*/

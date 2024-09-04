@@ -23,8 +23,8 @@ HEADERS = $(shell find $(SRC_DIR) $(UTILS_SRC_DIR) -name *.hpp -or -name *.h)
 
 DEPS = $(BUILD_DIR)/vector.o
 
-TEST_DIR_HEADERS = ./src/include
-TEST_DIR_SRC = ./src/http/server
+TEST_DIR_HEADERS = ./src/
+TEST_DIR_SRC = ./src/http/
 TEST_HEADERS = $(shell find $(TEST_DIR_HEADERS) -name *.h)
 TEST_SRC = $(shell find $(TEST_DIR_SRC) -name *.c)
 

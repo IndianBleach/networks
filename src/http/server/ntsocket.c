@@ -17,6 +17,9 @@
 #define SSL_PUBKEY_PATH "/home/gcreep/github.local/networks/ssl/local.pem"
 #define SSL_PRIVKEY_PATH "/home/gcreep/github.local/networks/ssl/local.pem"
 
+#define REQUEST_BUFF_CAP 1024
+
+#include "../include/http/request.h"
 #include "../include/sockets/ssl/ntssl.h"
 
 //#include "openssl-master/ms/applink.c"
@@ -160,6 +163,7 @@ void ntsock_io_run(ntnode_config *config) {
             } else if (poll_events[i].events & EPOLLIN) {
                 printf("node.%lu: EPOLLIN.\n", tid);
                 fdssl_read(epoll_fd, client_fd, rbuff, cssl);
+                printf("readed=%s\n", rbuff);
                 //fdssl_read(epoll_fd, client_fd, rbuff, cssl);
             } else if (poll_events[i].events & EPOLLOUT) {
                 printf("node.%lu: EPOLLOUT.\n", tid);
