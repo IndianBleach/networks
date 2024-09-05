@@ -75,12 +75,12 @@ void parse(httpreq_buff *buff) {
     while (ctx.cursor < ctx.end) {
         // parsing deep enums by priority
         int enum_deep = -1;
-        int level = 0;
+        int enum_level = 0;
         while ((enum_deep = is_enum_value(&ctx, enum_deep)) > 0) {
             tail->next = token_new_at(enum_value_begin, &ctx.buff[enum_deep], 1);
             tail = tail->next;
             token_dump(tail);
-            level++;
+            enum_level++;
         }
 
         int base_len;
@@ -112,43 +112,87 @@ void parse(httpreq_buff *buff) {
                 token_dump(tail);
             }
 
-            continue;
-            // getTag()
-            //printf("deep.pre.get_tag: curs=%i\n", ctx.cursor);
-
-            // getPath()
-            // getTag()
             // getLongWord
-        }
-        if ((base_len = get_string(&ctx)) > 0) {
+        } else if ((base_len = get_string(&ctx)) > 0) {
             // variants
-            // --version
-            // --addr
 
             printf("get_string=%i\n", base_len);
             tail->next = token_new_at(string, &ctx.buff[ctx.cursor], base_len);
             tail = tail->next;
             ctx_move(&ctx, base_len);
             token_dump(tail);
-            continue;
-        }
-        if ((base_len = get_number(&ctx)) > 0) {
-            printf("get_number=%i\n", base_len);
-            tail->next = token_new_at(number, &ctx.buff[ctx.cursor], base_len);
-            tail = tail->next;
-            ctx_move(&ctx, base_len);
-            token_dump(tail);
-            continue;
+        } else if ((base_len = get_number(&ctx)) > 0) {
+            int local;
+            if ((local = get_ipaddr(&ctx)) > 0) {
+                printf("get_number.get_ipaddr=%i\n", local);
+                tail->next = token_new_at(ipaddr, &ctx.buff[ctx.cursor], local);
+                tail = tail->next;
+                ctx_move(&ctx, local);
+                token_dump(tail);
+            } else if ((local = get_version(&ctx)) > 0) {
+                printf("get_number.get_version=%i\n", local);
+                tail->next = token_new_at(version, &ctx.buff[ctx.cursor], local);
+                tail = tail->next;
+                ctx_move(&ctx, local);
+                token_dump(tail);
+            } else {
+                int floated;
+                if ((floated = is_float(&ctx, base_len)) > 0) {
+                    printf("get_number.floated=%i\n", base_len);
+                } else {
+                    printf("get_number.int=%i\n", base_len);
+                }
+
+                tail->next = token_new_at(number, &ctx.buff[ctx.cursor], base_len);
+                tail = tail->next;
+                ctx_move(&ctx, base_len);
+                token_dump(tail);
+            }
         }
 
-        // isNumber=float|int
+        // symbol parsing
+        if (ctx.buff[ctx.cursor] == ',') {
+            if (enum_level >= 1) {
+                tail->next = token_new(NULL, enum_delim_comma);
+                tail = tail->next;
+                ctx_move(&ctx, 1);
+            }
+        } else if (ctx.buff[ctx.cursor] == ';') {
+            if (enum_level >= 1) {
+                tail->next = token_new(NULL, enum_delim_semicolon);
+                tail = tail->next;
+                ctx_move(&ctx, 1);
+            }
+        }
 
-        // isSymbol
-        // --description
+        // longWord
+        // sp
 
         ctx.cursor++;
     }
 }
+
+// TODO:
+/*
+    httprequest
+        -vector<httpheader_value> headers;
+        -long_string body
+        -vector<httpquery_param> params;
+        -char* path;
+        -httpmethod method; 
+        -ipadrr addr;
+
+    httpheader_value
+    -m_value_type;
+    -char name;
+    -type type
+    -char* single_value;
+    -vector<httpheader_value*> values;
+
+    
+
+
+*/
 
 // utils
 
@@ -217,6 +261,21 @@ int is_enum_value(parse_context *ctx, int local_end) {
     return -1;
 }
 
+int is_float(parse_context *ctx, int len) {
+    int i = 0;
+    char *begin = &ctx->buff[ctx->cursor];
+    int end = len;
+    while (i < end) {
+        if (begin[i] == '.') {
+            return len;
+        } else {
+            i++;
+        }
+    }
+
+    return -1;
+}
+
 void ctx_move(parse_context *ctx, int steps) {
     int old = ctx->cursor;
     ctx->cursor += steps;
@@ -274,7 +333,8 @@ char ctx_at(parse_context *ctx, int pos) {
     return ctx->buff[pos];
 }
 
-// [32.1] [32] [123.0.4.2].<other symbol>
+// [32.1] [32] [123.0].4.2.<other symbol>
+// [17.2].3
 int get_number(parse_context *ctx) {
     int local = ctx->cursor;
     int last_seg = 0;
@@ -284,10 +344,44 @@ int get_number(parse_context *ctx) {
         local++;
         size++;
         if (local < ctx->end && ctx->buff[local] == '.') {
+            if (last_seg != 0) {
+                break;
+            }
+            local++;
+            size++;
+
+            last_seg = local;
+        }
+    }
+
+    if (size > 0) {
+        return size;
+    }
+
+    return -1;
+}
+
+// [32.1] [32] [123.0.4.2].<other symbol>
+// [17.2.3].
+int get_version(parse_context *ctx) {
+    int local = ctx->cursor;
+    int last_seg = 0;
+    int size = 0;
+    int expect_dots = 2;
+
+    while (local < ctx->end && ctx->buff[local] >= '0' && ctx->buff[local] <= '9') {
+        local++;
+        size++;
+        if (local < ctx->end && ctx->buff[local] == '.') {
             local++;
             size++;
             last_seg = local;
+            expect_dots--;
         }
+    }
+
+    if (expect_dots > 0) {
+        return -1;
     }
 
     if (last_seg > 0) {
@@ -305,6 +399,63 @@ int get_number(parse_context *ctx) {
         return size;
     }
 
+    return -1;
+}
+
+// 123.4.56.2:4040
+// 123.4.56.2:40
+int get_ipaddr(parse_context *ctx) {
+    int ip_len = 0;
+    int curs = ctx->cursor;
+    int port_len = 0;
+    int end = ctx->end;
+    char *begin = &ctx->buff[ctx->cursor];
+    if ((ip_len = get_version(ctx)) > 0) {
+        // valid address, has 4 '.'
+        printf("ip_len=%i\n", ip_len);
+        int require_dot = 3;
+        int segment_max_len = 3;
+        for (int i = 0; i < ip_len; i++) {
+            if (begin[i] == '.') {
+                require_dot--;
+                segment_max_len = 3;
+            } else {
+                segment_max_len--;
+            }
+
+            if (segment_max_len < 0) {
+                //printf("segment_max_len=%i\n", require_dot);
+                return -1;
+            }
+        }
+
+        if (require_dot != 0) {
+            //printf("require_dot=%i\n", require_dot);
+            return -1;
+        }
+
+        char next = ctx_at(ctx, curs + ip_len);
+        if (next == ':') {
+            curs += ip_len;
+            curs++;
+            // can't use get_number because they take floated numbers
+            // parse
+            while (curs < end) {
+                //printf("cur==%c\n", ctx->buff[curs]);
+                if (ctx->buff[curs] >= '0' && ctx->buff[curs] <= '9') {
+                    port_len++;
+                } else {
+                    break;
+                }
+                curs++;
+            }
+
+            //printf("PORT_LEN=%i\n", port_len);
+            if (port_len > 0 && port_len <= 4) {
+                return ip_len + port_len + 1;
+            }
+        }
+    }
 
     return -1;
 }
@@ -359,8 +510,18 @@ int get_tag(parse_context *ctx) {
 int main() {
     printf("test2.start\n");
 
-    const char *t = "connection: \"long\" 17.2\0";
+    const char *t = "connection: 12.2.344.4:2\nhost:keep-alive 123.3.4 123 123.4\0";
+    /*
+    parse_context ctx;
+    ctx.buff = t;
+    ctx.cursor = 0;
+    ctx.end = strlen(t);
 
+    int t1 = get_ipaddr(&ctx);
+
+    printf("RES=%i\n", t1);
+    return 0;
+*/
     httpreq_buff *reqbuff = reqbuff_new(1024);
 
     reqbuff_copy(t, reqbuff);

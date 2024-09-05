@@ -11,14 +11,16 @@ enum httpreq_tokentype {
     enum_value_begin,
     enum_value_end,
 
+    enum_delim_comma,
+    enum_delim_semicolon,
+
+
     word_path,
     word,
 
     header_tag,
+    ipaddr,
 
-    enum_delim_semicolom,
-    enum_delim_space,
-    enum_delim_comma,
 
     delim_semicolon,
     delim_dot,
@@ -31,7 +33,6 @@ enum httpreq_tokentype {
     string,
     path,
     symbol,
-    ip,
     port,
 
     number,
