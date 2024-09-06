@@ -14,7 +14,6 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <vector.h>
 
 // tokens
 typedef struct parse_context parse_context;
@@ -177,19 +176,19 @@ void parse(httpreq_buff *buff) {
     ----------------------
             HTTP REQUEST
     httprequest
-        -vector<httpheader_value> headers;
+        -vector<headervalue> headers;
         -long_string body
         -vector<httpquery_param> params; query_parser
         -char* path; look(tag=path)
         -httpmethod method;  look(tag=method)
         -ipadrr addr; look(tag=host)
 
-    httpheader_value
+    headervalue
     -m_value_type;
     -char name;
     -type type
     -char* single_value;
-    -vector<httpheader_value*> values;
+    -vector<headervalue*> values;
 
     void make_headers(httptoken_list, vector<http_header>*)
 
@@ -217,29 +216,55 @@ void parse(httpreq_buff *buff) {
 
 */
 
-typedef enum httpheader_value_type {
-    STRING,
-    NUMBER_FLOAT,
-    NUMBER_INT,
-    VERSION,
-    IP_ADDR,
-    WORD,
-    KEY_VALUE,
-} httpheader_value_type;
+typedef enum headervalue_type {
+    VALUE,
+    LIST_VALUE,
+    LIST_VALUE_DEEP,
+    TAG_VALUE,
+} headervalue_type;
 
-typedef union httpheader_value {
+typedef union headervalue {
     const char *value;
 
     struct {
-        const char *key;
-        const char *key_value;
+        const char *tag;
+        const char *value;
     } tagvalue;
-} httpheader_value;
 
-struct httpheader {
-    httpheader_value_type type;
-    httpheader_value value;
-};
+    // pepresenting list like: accept: 'eg, gz, er;  v=0.9'
+    //                                  __value__,  __next__
+    //                                 ..next->next.
+    struct {
+        size_t count;
+        headervalue *value;
+        headervalue *next;
+    } list;
+
+
+} headervalue;
+
+typedef struct httpheader {
+    headervalue_type type;
+    headervalue value;
+    const char *name;
+} httpheader;
+
+#include "../include/core/vector.h"
+
+/*
+    httprequest
+        -vector<headervalue> headers;
+        -long_string body
+        -vector<httpquery_param> params; query_parser
+        -char* path; look(tag=path)
+        -httpmethod method;  look(tag=method)
+        -ipadrr addr; look(tag=host)
+*/
+
+
+typedef struct httprequest {
+    vector *vec_httpheaders;
+} httprequest;
 
 // utils
 

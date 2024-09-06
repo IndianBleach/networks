@@ -3,14 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct vector vector;
-
-struct vector {
+typedef struct vector {
     void *buff;
     size_t capacity;
     size_t size;
     size_t type_size;
-};
+} vector;
 
 void vector_init(vector *vec, size_t base_cap, size_t type_sz) {
     vec->buff = (void *) malloc(sizeof(void *) * base_cap);
