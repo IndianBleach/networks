@@ -38,6 +38,7 @@ void vector_ensure_capacity(vector *vec, size_t new_cap) {
     vec->capacity = new_cap;
 }
 
+// fix
 void vector_push_back(vector *vec, void *elem) {
     if (elem == NULL) {
         return;
@@ -62,10 +63,28 @@ void *vector_at(vector *vec, size_t index) {
     return vec->buff + (sizeof(void *) * index);
 }
 
-// push
+void vector_resize(vector *vec, size_t new_size) { vec->size = new_size; }
 
-// new
-// dst
+void vector_shrink_to_fit(vector *vec) {
+    // delete elements by capacity
+    size_t new_size = sizeof(void *) * vec->size;
+    void *newb = realloc(vec->buff, new_size);
+    vec->buff = newb;
+}
+
+void vector_clear(vector *vec) {
+    vector_resize(vec, 0);
+    vector_shrink_to_fit(vec);
+}
+
+// fix
+void vector_reserve(vector *vec, size_t count) {
+    size_t free_now = (vec->capacity - vec->size);
+
+    if (free_now < count) {
+        vector_ensure_capacity(vec, count);
+    }
+}
 
 int main() {
     printf("main.start\n");
@@ -93,30 +112,6 @@ int main() {
     printf("t=%i\n", r3);
 
     vector_dstr(&vec);
-
-    // alocating block of memory
-    // representig variable begin block as void ptr
-    /*
-    void *buff = (void *) malloc(sizeof(int *) * 2);
-    void *ofs = buff;
-
-    printf("begin=%p end=%p\n", buff, buff + sizeof(void *) * 2);
-    printf("PTR=%p\n", ofs);
-
-    // copy VARIABLE(ADDRESS) ( void*) to BLOCK
-    memcpy(buff, &t, sizeof(int));
-    memcpy(buff + sizeof(void *), &t2, sizeof(int));
-
-
-    ofs = realloc(buff, sizeof(int *) * 4);
-    memcpy(ofs + sizeof(void *) * 2, &t3, sizeof(int));
-
-    int r1 = *(int *) (ofs + 0);
-    int r2 = *(int *) (ofs + sizeof(void *));
-    int r3 = *(int *) (ofs + sizeof(void *) * 2);
-
-
-    */
 
 
     return 0;
