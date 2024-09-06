@@ -14,9 +14,9 @@ MAIN_FLAGS = -std=c99 -g -O0 $(INCLUDE_FLAGS) $(SSL_FLAGS)
 
 # WARNINGS_FLAGS = -Wall -Wextra -Wpedantic -Wduplicated-branches -Wduplicated-cond -Wcast-qual -Wconversion -Wsign-conversion -Wlogical-op -Werror
 WARNINGS_FLAGS = -Wall -Wextra -Wpedantic -Wduplicated-branches -Wduplicated-cond -Wcast-qual -Wconversion -Wsign-conversion -Wlogical-op
-SANITIZER_FLAGS = -fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract -fsanitize=leak -fsanitize=undefined -fsanitize-address-use-after-scope
-FLAGS = $(MAIN_FLAGS) $(WARNINGS_FLAGS) $(SANITIZER_FLAGS)
-
+SANITIZER_FLAGS = -fsanitize=address #-fsanitize=pointer-compare -fsanitize=pointer-subtract # -fsanitize=undefined -fsanitize-address-use-after-scope #-fsanitize=leak
+FLAGS = $(MAIN_FLAGS) $(WARNINGS_FLAGS)  $(SANITIZER_FLAGS)
+#
 # Sources and headers
 SOURCES = $(shell find $(SRC_DIR) $(UTILS_SRC_DIR) -name *.cpp -or -name *.c)
 HEADERS = $(shell find $(SRC_DIR) $(UTILS_SRC_DIR) -name *.hpp -or -name *.h)
@@ -27,6 +27,9 @@ TEST_DIR_HEADERS = ./src/
 TEST_DIR_SRC = ./src/http/
 TEST_HEADERS = $(shell find $(TEST_DIR_HEADERS) -name *.h)
 TEST_SRC = $(shell find $(TEST_DIR_SRC) -name *.c)
+
+core.vector:
+	$(GCC) $(FLAGS) ./src/core/vector.c -o $(BUILD_OBJ)
 
 server.test:
 	$(GCC) $(FLAGS) $(TEST_SRC) $(TEST_HEADERS) -o $(BUILD_OBJ)

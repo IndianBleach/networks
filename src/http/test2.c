@@ -174,13 +174,15 @@ void parse(httpreq_buff *buff) {
 
 // TODO:
 /*
+    ----------------------
+            HTTP REQUEST
     httprequest
         -vector<httpheader_value> headers;
         -long_string body
-        -vector<httpquery_param> params;
-        -char* path;
-        -httpmethod method; 
-        -ipadrr addr;
+        -vector<httpquery_param> params; query_parser
+        -char* path; look(tag=path)
+        -httpmethod method;  look(tag=method)
+        -ipadrr addr; look(tag=host)
 
     httpheader_value
     -m_value_type;
@@ -189,7 +191,28 @@ void parse(httpreq_buff *buff) {
     -char* single_value;
     -vector<httpheader_value*> values;
 
+    void make_headers(httptoken_list, vector<http_header>*)
+
+    -----------------------
+            FILE-CONTROLLER-VIEW
+    -определить роуты? по файлу
+    -смотреть на путь и возвращать html страницу, если такая определена, подгружать зависимости
+    -как отправлять файлы
+    -----------------------
+    HTTP RESPONSE
+    -file/text
+    -metadata
+    -status_codes
+    -type
     
+    -----------------------
+            CLI
+    commands
+
+    -----------------------
+            CACHE
+    sessions/ connections/ ssl?
+
 
 
 */
@@ -507,7 +530,7 @@ int get_tag(parse_context *ctx) {
     }
 }
 
-int main() {
+int main2() {
     printf("test2.start\n");
 
     const char *t = "connection: 12.2.344.4:2\nhost:keep-alive 123.3.4 123 123.4\0";
