@@ -23,19 +23,22 @@ void vector_init(vector *vec, size_t base_cap, size_t type_sz) {
     vec->capacity = base_cap;
 }
 
-void vector_dstr(vector *vec) {}
+void vector_dstr(vector *vec) {
+    free(vec->buff);
+    //free(vec);
+}
 
-void vector_ensure_capacity(vector *vec, size_t need) {
-    printf("ensure: %i\n", need);
-    vec->buff = (void *) realloc((char *) vec->buff, vec->type_size * need);
+void vector_ensure_capacity(vector *vec, size_t new_cap) {
+    printf("ensure: %i\n", new_cap);
+    vec->buff = (void *) realloc(vec->buff, vec->type_size * new_cap);
     if (!vec->buff) {
         printf("vector_ensure_capacity=error\n");
         return;
     }
-    vec->capacity = need;
+    vec->capacity = new_cap;
 }
 
-void vector_push(vector *vec, void *elem) {
+void vector_push_back(vector *vec, void *elem) {
     if (elem == NULL) {
         return;
     }
@@ -47,10 +50,7 @@ void vector_push(vector *vec, void *elem) {
         printf("vector_push.resize\n");
     }
 
-
-    printf("new: cap=%i buff=%p\n", vec->capacity, vec->buff);
-
-    memcpy(vec->buff + vec->size, &elem, vec->type_size);
+    memcpy(vec->buff + vec->size * sizeof(void *), elem, vec->type_size);
     vec->size++;
 }
 
@@ -59,10 +59,7 @@ void *vector_at(vector *vec, size_t index) {
         return NULL;
     }
 
-    void *ind = vec->buff + (index);
-    printf("vector_at: %p\n", ind);
-
-    return ind;
+    return vec->buff + (sizeof(void *) * index);
 }
 
 // push
@@ -81,8 +78,25 @@ int main() {
     printf("SIZE=%i\n", sizeof(int *));
     printf("SIZE=%i\n", sizeof(int *));
 
+    vector vec;
+    vector_init(&vec, 3, sizeof(int));
+    vector_push_back(&vec, &t);
+    vector_push_back(&vec, &t2);
+    vector_push_back(&vec, &t3);
+
+    int r1 = *(int *) vector_at(&vec, 0);
+    int r2 = *(int *) vector_at(&vec, 1);
+    int r3 = *(int *) vector_at(&vec, 2);
+
+    printf("t=%i\n", r1);
+    printf("t=%i\n", r2);
+    printf("t=%i\n", r3);
+
+    vector_dstr(&vec);
+
     // alocating block of memory
     // representig variable begin block as void ptr
+    /*
     void *buff = (void *) malloc(sizeof(int *) * 2);
     void *ofs = buff;
 
@@ -101,38 +115,9 @@ int main() {
     int r2 = *(int *) (ofs + sizeof(void *));
     int r3 = *(int *) (ofs + sizeof(void *) * 2);
 
-    printf("t=%i\n", r1);
-    printf("t=%i\n", r2);
-    printf("t=%i\n", r3);
 
-    //memcpy((char) buff + sizeof(int) * 1, &t, sizeof(int));
-    //memcpy((char) buff + sizeof(int) * 2, &t2, sizeof(int));
+    */
 
-    //int r1 = *(int *) (buff + 0);
-
-    //void *ptr = (void *) realloc((void *) buff, sizeof(void *) * 4);
-
-    //int r2 = *(int *) (ptr + 0);
-
-    //printf("t=%i\n", r1);
-
-    /*
-    vector vec;
-    vector_init(&vec, 2, sizeof(int));
-
-    vector_push(&vec, &t);
-    vector_push(&vec, &t2);
-
-    int *ret1 = (int *) vector_at(&vec, 0);
-
-    vector_push(&vec, &t2);
-
-    //int *ret2 = (int *) vector_at(&vec, 0);
-
-    printf("AT=%i\n", *ret1);
-
-    printf("main.end\n");
-*/
 
     return 0;
 }
