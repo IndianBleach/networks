@@ -38,7 +38,6 @@ void vector_ensure_capacity(vector *vec, size_t new_cap) {
     vec->capacity = new_cap;
 }
 
-// fix
 void vector_push_back(vector *vec, void *elem) {
     if (elem == NULL) {
         return;
@@ -77,7 +76,6 @@ void vector_clear(vector *vec) {
     vector_shrink_to_fit(vec);
 }
 
-// fix
 void vector_reserve(vector *vec, size_t count) {
     size_t free_now = (vec->capacity - vec->size);
 
@@ -107,9 +105,22 @@ int main() {
     int r2 = *(int *) vector_at(&vec, 1);
     int r3 = *(int *) vector_at(&vec, 2);
 
-    printf("t=%i\n", r1);
-    printf("t=%i\n", r2);
-    printf("t=%i\n", r3);
+    vector_resize(&vec, 2);
+    printf("old=%p\n", vec.buff);
+    vector_shrink_to_fit(&vec);
+    printf("new=%p\n", vec.buff);
+
+    vector_clear(&vec);
+
+    int *q1 = (int *) vector_at(&vec, 0);
+    int *q2 = (int *) vector_at(&vec, 1);
+    //int q3 = *(int *) vector_at(&vec, 2);
+
+    printf("t=%p\n", q1);
+    printf("t=%p\n", q2);
+
+
+    //printf("t=%i\n", q3);
 
     vector_dstr(&vec);
 

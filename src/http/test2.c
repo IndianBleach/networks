@@ -206,7 +206,7 @@ void parse(httpreq_buff *buff) {
     -type
     
     -----------------------
-            CLI
+            CLI (с++)
     commands
 
     -----------------------
@@ -216,6 +216,30 @@ void parse(httpreq_buff *buff) {
 
 
 */
+
+typedef enum httpheader_value_type {
+    STRING,
+    NUMBER_FLOAT,
+    NUMBER_INT,
+    VERSION,
+    IP_ADDR,
+    WORD,
+    KEY_VALUE,
+} httpheader_value_type;
+
+typedef union httpheader_value {
+    const char *value;
+
+    struct {
+        const char *key;
+        const char *key_value;
+    } tagvalue;
+} httpheader_value;
+
+struct httpheader {
+    httpheader_value_type type;
+    httpheader_value value;
+};
 
 // utils
 
@@ -532,6 +556,7 @@ int get_tag(parse_context *ctx) {
 
 int main2() {
     printf("test2.start\n");
+
 
     const char *t = "connection: 12.2.344.4:2\nhost:keep-alive 123.3.4 123 123.4\0";
     /*
