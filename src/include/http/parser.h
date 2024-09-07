@@ -3,10 +3,8 @@
 
 #include "../include/http/httpinfo.h"
 
-// TYPE
-typedef enum httpreq_tokentype httpreq_tokentype;
-
-enum httpreq_tokentype {
+// TOKEN
+typedef enum httpreq_tokentype {
 
     enum_value_begin,
     enum_value_end,
@@ -41,10 +39,40 @@ enum httpreq_tokentype {
 
     _parse_begin,
     _parse_end
-};
+} httpreq_tokentype;
 
-// TOKEN
+typedef struct httpreq_token {
+    httpreq_tokentype type;
+    const char *value;
+    httpreq_token *next;
+} httpreq_token;
 
+httpreq_token *token_new(const char *value, httpreq_tokentype type);
+httpreq_token *token_new_at(httpreq_tokentype type, char *buff, int len);
+void token_dump(httpreq_token *tk);
+
+// PARSING
+typedef struct parse_context {
+    int cursor;
+    char *buff;
+    int end;
+} parse_context;
+
+void parse(httrequest_buff *buff);
+
+void ctx_move(parse_context *ctx, int steps);
+char ctx_at(parse_context *ctx, int pos);
+
+int is_enum_value(parse_context *ctx, int local_end);
+int is_float(parse_context *ctx, int len);
+
+int get_string(parse_context *ctx);
+int get_word(parse_context *ctx);
+int get_number(parse_context *ctx);
+int get_version(parse_context *ctx);
+int get_ipaddr(parse_context *ctx);
+int getm_path(parse_context *ctx);
+int get_tag(parse_context *ctx);
 
 // token
 // token_list

@@ -2,19 +2,17 @@
 #define _HTTP_REQUEST_
 
 #include "../include/http/httpinfo.h"
-
+#include "vector.h"
 
 // REQUEST BUFFER
-typedef struct httpreq_buff httpreq_buff;
-
-struct httpreq_buff {
+typedef struct httrequest_buff {
     char *ptr;
     unsigned int capacity;
-};
+} httrequest_buff;
 
-httpreq_buff *reqbuff_new(unsigned int cap);
-void reqbuff_dstr(httpreq_buff *buff);
-void reqbuff_copy(const char *source, httpreq_buff *dest);
+httrequest_buff *reqbuff_new(unsigned int cap);
+void reqbuff_dstr(httrequest_buff *buff);
+void reqbuff_copy(const char *source, httrequest_buff *dest);
 
 /////////// HEADER
 typedef enum header_value_type {

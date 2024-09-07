@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct {
+typedef struct vector {
     size_t len;
     size_t cap;
     size_t type_sz;
