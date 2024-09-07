@@ -16,29 +16,68 @@ httpreq_buff *reqbuff_new(unsigned int cap);
 void reqbuff_dstr(httpreq_buff *buff);
 void reqbuff_copy(const char *source, httpreq_buff *dest);
 
-// REQUEST
-/*
-typedef struct httprequest httprequest;
-struct httprequest_header {
-    http_method http_method;
-    http_pathnode http_path;
-    nt_version http_version;
-    nt_hostaddr host;
-    http_token *connection;
-    http_token *user_agent;
-    http_token *accept;
-    http_token *accept_language;
-    http_token *content_type;
-    http_token *content_length;
-};
+/////////// HEADER
+typedef enum header_value_type {
+    VALUE,
+    LIST_VALUE,
+    LIST_VALUE_DEEP,
+    TAG_VALUE,
+} header_value_type;
 
-httprequest *httpreq_new();
-void httpreq_dstr(httprequest *req);
+typedef union header_value {
+    const char *value;
+
+    struct {
+        const char *tag;
+        const char *value;
+    } tagvalue;
+
+    // pepresenting list like: accept: 'eg, gz, er;  v=0.9'
+    //                                  __value__,  __next__
+    //                                 ..next->next.
+    struct {
+        size_t count;
+        header_value *value;
+        header_value *next;
+    } list;
 
 
-// todo
-void httpreq_init(httprequest *request, httpreq_buff *buff);
-*/
+} header_value;
 
+typedef struct httpheader {
+    header_value_type type;
+    header_value value;
+    const char *name;
+} httpheader;
+
+/////////// QUERY
+typedef enum queryparam_value_type {
+    LIST_VALUES,
+    VALUE,
+} queryparam_value_type;
+
+typedef union queryparam_value {
+    struct {
+        const char *value;
+        queryparam_value *next;
+    } list;
+
+    const char *value;
+} queryparam_value;
+
+typedef struct queryparam {
+    queryparam_value_type type;
+    queryparam_value value;
+} queryparam;
+
+/////////// REQUEST
+typedef struct httprequest {
+    vector *httpheaders;
+    vector *queryparams;
+    httppath_head *path;
+    httpmethod method;
+    nt_addrstr host_addr;
+    const char *body;
+} httprequest;
 
 #endif

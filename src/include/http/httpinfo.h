@@ -28,18 +28,31 @@ enum http_statuscode {
     ERR_SSL_INVALID_CERT = 526
 };
 
-typedef enum http_method http_method;
+typedef enum httpmethod {
+    HTTP_GET,
+    HTTP_POST,
+    HTTP_DELETE,
+    HTTP_PUT,
+} httpmethod;
 
-enum http_method { POST, GET, DELETE, PUT };
-
-// HTTP_PATH
-typedef struct http_pathnode http_pathnode;
-
-struct http_pathnode {
-    struct http_pathnode *next;
-    bool is_file;
+/////////// PATH
+typedef struct httppath_segment {
     const char *value;
-};
+    httppath_segment *next;
+} httppath_segment;
+
+typedef httppath_segment httppath_head;
+
+// PORT
+typedef unsigned int nt_port;
+typedef const char *nt_ipstr;
+
+/////////// ADDR
+typedef struct nt_addrstr {
+    nt_ipstr ip;
+    nt_port port;
+} nt_addrstr;
+
 
 // IP
 typedef struct nt_ip nt_ip;
@@ -51,8 +64,6 @@ struct nt_ip {
     unsigned int seg4;
 };
 
-// PORT
-typedef unsigned int nt_port;
 
 // ADDR
 typedef struct nt_hostaddr nt_hostaddr;

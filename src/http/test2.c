@@ -171,24 +171,10 @@ void parse(httpreq_buff *buff) {
     }
 }
 
-// TODO:
 /*
+TODO:
     ----------------------
             HTTP REQUEST
-    httprequest
-        -vector<headervalue> headers;
-        -long_string body
-        -vector<httpquery_param> params; query_parser
-        -char* path; look(tag=path)
-        -httpmethod method;  look(tag=method)
-        -ipadrr addr; look(tag=host)
-
-    headervalue
-    -m_value_type;
-    -char name;
-    -type type
-    -char* single_value;
-    -vector<headervalue*> values;
 
     void make_headers(httptoken_list, vector<http_header>*)
 
@@ -216,38 +202,6 @@ void parse(httpreq_buff *buff) {
 
 */
 
-typedef enum headervalue_type {
-    VALUE,
-    LIST_VALUE,
-    LIST_VALUE_DEEP,
-    TAG_VALUE,
-} headervalue_type;
-
-typedef union headervalue {
-    const char *value;
-
-    struct {
-        const char *tag;
-        const char *value;
-    } tagvalue;
-
-    // pepresenting list like: accept: 'eg, gz, er;  v=0.9'
-    //                                  __value__,  __next__
-    //                                 ..next->next.
-    struct {
-        size_t count;
-        headervalue *value;
-        headervalue *next;
-    } list;
-
-
-} headervalue;
-
-typedef struct httpheader {
-    headervalue_type type;
-    headervalue value;
-    const char *name;
-} httpheader;
 
 #include "../include/core/vector.h"
 
@@ -260,13 +214,6 @@ typedef struct httpheader {
         -httpmethod method;  look(tag=method)
         -ipadrr addr; look(tag=host)
 */
-
-
-typedef struct httprequest {
-    vector *vec_httpheaders;
-} httprequest;
-
-// utils
 
 
 // return len("len(word)")
