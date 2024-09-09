@@ -68,29 +68,84 @@ TODO:
 */
 
 // extract_queryparams
-// extract_version
+// comparator
+// alg functions + generics
 
+#include <stdio.h>
+#include <stdlib.h>
+
+void foo(int **t) {
+    *t = NULL;
+    *t = (int *) malloc(sizeof(int));
+}
+
+#include "../include/core/coredef.h"
+
+typedef struct usr usr;
+
+struct usr {
+    const char *name;
+};
+
+usr *crt(const char *name) {
+    usr *p = (usr *) malloc(sizeof(usr));
+    p->name = name;
+    return p;
+}
+
+int usr_comp(usr *a, char *name) {
+    if (strcmp(a->name, name) == 0)
+        return 0;
+    else
+        return -1;
+}
 
 int main() {
     printf("test2.start\n");
 
-    const char *t = "/users/views/login.html d";
+    usr *t1 = crt("John");
+    usr *t2 = crt("Serp");
+    usr *t3 = crt("Katya");
+
+    printf("usr: p=%p name=%s\n", t1, t1->name);
+    printf("usr: p=%p name=%s\n", t2, t2->name);
+    printf("usr: p=%p name=%s\n", t2, t3->name);
+
+    vector vec;
+    vector_init(&vec, 10, sizeof(usr *));
+
+    vector_push_back(&vec, t1);
+    vector_push_back(&vec, t2);
+    vector_push_back(&vec, t3);
+
+
+    usr *tt = (usr *) vector_at(&vec, 0);
+    printf("AT0=%s\n", tt->name);
+
+    int res = find_str(vector_begin(&vec), vector_end(&vec), vec.size, "Katya", usr_comp);
+
+
+    printf("RES=%i\n", res);
+
+    return;
+
+    queryparam *p = queryparam_new(QUERY_VALUE, 5, "apple");
+    printf("qd=%p\n", p);
+    printf("pva=%p\n", &p->value);
+    printf("q=%s\n", p->value.value);
+
+    return 1;
+
+    const char *t = "1.0\n";
 
     parse_context ctx;
     ctx.buff = t;
     ctx.cursor = 0;
     ctx.end = strlen(t);
-    httppath_segment *head = extract_path(&ctx);
 
-    while (head != NULL) {
-        printf("NODE=%s\n", head->value);
-
-        if (head->next != NULL) {
-            head = head->next;
-        } else {
-            break;
-        }
-    }
+    httpversion version;
+    int len = extract_httpversion(&ctx, &version);
+    printf("version=%hu %hu\n", version.seg1, version.seg2);
 
 
     /*

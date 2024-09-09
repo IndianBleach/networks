@@ -1,5 +1,6 @@
 #include "../include/http/parser.h"
 
+#include "../include/core/coredef.h"
 #include "../include/http/httpinfo.h"
 #include "../include/http/request.h"
 
@@ -67,18 +68,19 @@ httpmethod extract_method(parse_context *ctx) {
         return HTTP_METHOD_UNDF;
 };
 
-httppath_segment *extract_path(parse_context *ctx) {
+int extract_path(parse_context *ctx, httppath_segment **__out_pathhead) {
     int cur = ctx->cursor;
     int end = ctx->end;
     char *begin = ctx->buff;
-
-    httppath_segment *head = NULL;
+    int size = 0;
+    *__out_pathhead = NULL;
     httppath_segment *tail;
 
     int word_len = 0;
     while (cur < end) {
         if (begin[cur] == '/') {
             cur++;
+            size++;
             ctx_move(ctx, 1);
             continue;
         }
@@ -89,11 +91,11 @@ httppath_segment *extract_path(parse_context *ctx) {
 
         if ((word_len = get_word_ext(ctx)) > 0) {
             // head.append
-            if (!head) {
+            if (!(*__out_pathhead)) {
                 //printf("P=%c\n", begin[cur]);
-                head = pathsegment_new(word_len, &begin[cur]);
+                *__out_pathhead = pathsegment_new(word_len, &begin[cur]);
                 //printf("PATH_SEG(AFT)=%s\n", head->value);
-                tail = head;
+                tail = *__out_pathhead;
             } else {
                 tail->next = pathsegment_new(word_len, &begin[cur]);
                 tail = tail->next;
@@ -101,15 +103,100 @@ httppath_segment *extract_path(parse_context *ctx) {
 
             ctx_move(ctx, word_len);
             cur += word_len;
+            size += word_len;
 
         } else
             break;
     }
 
-    return head;
-
-    // ctx_move
+    return size;
 };
+
+// [1.0], [2.0]
+int extract_httpversion(parse_context *ctx, httpversion *__out_version) {
+    int len = get_number(ctx);
+    if (len == 3) {
+        int curs = ctx->cursor;
+        __out_version->seg1 = (unsigned short) (ctx->buff[curs] - '0');
+        __out_version->seg2 = (unsigned short) (ctx->buff[curs + 2] - '0');
+
+        return len;
+    }
+
+    return -1;
+}
+
+// [?name=john...], [name=john...]
+int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
+    if (!__out_vec_qparams)
+        return -1;
+
+    int cur = ctx->cursor;
+    int end = ctx->end;
+    int size = 0;
+    char *begin = ctx->buff;
+
+    if (begin[cur] == '?') {
+        cur++;
+    }
+
+    int tag_len = 0;
+    int val_len = 0;
+
+    void *iter_begin = vector_begin(__out_vec_qparams);
+
+    while (cur < end) {
+        if ((tag_len = get_tag(ctx)) > 0) {
+            // tag is open
+
+            char *tag_name = cstr_new(tag_len, ctx->buff);
+
+            ctx_move(ctx, tag_len + 1); // +1 for :
+            printf("CUR_TAG=%c tagname=%s\n", begin[cur], tag_name);
+
+
+            if ((val_len = get_querytag_value(ctx)) > 0) {
+                // create single value tag
+                queryparam *qp = queryparam_new(QUERY_VALUE, val_len, &ctx->buff[ctx->cursor]);
+                qp->tag_name = tag_name;
+                qp->value.value = cstr_new(val_len, &ctx->buff[ctx->cursor]);
+
+                // check exists this tag in list
+
+                /*
+                int ex_index;
+                if ((ex_index = find_str((char **) vector_begin(&__out_vec_qparams),
+                                         (char **) vector_end(&__out_vec_qparams), __out_vec_qparams->size, tag_name)) >
+                    0) {
+                    printf("FINDED TAG=%s\n", tag_name);
+                    break;
+                } else {
+                    printf("NEW TAG=%s\n", tag_name);
+                }
+                */
+
+                //find_str(begin)
+
+                /*
+                    if exists in vector -> returned index
+                    item = vector_at(index);
+
+                        item.type = value_list
+                        item.value.next = new()
+                        item.value = item.value.next
+
+                    else
+                    push_back   new()
+
+                */
+            }
+        }
+
+        break;
+    }
+
+    return 1;
+}
 
 // PARSING
 // fix: out format? vector/headers struct
@@ -390,6 +477,50 @@ int get_word_ext(parse_context *ctx) {
     return word_len;
 }
 
+int get_word_version(parse_context *ctx) {
+    int i = ctx->cursor;
+    char *begin = ctx->buff;
+    int size = 0;
+
+    int word_len = get_word(ctx);
+    if (word_len > 0) {
+        i += word_len; // step next
+        //printf("CUR=%c\n", begin[i]);
+        if (begin[i] == '/') {
+            //ctx->cursor++;
+            i++;
+            int vers_len = get_version(ctx);
+            if (vers_len > 0) {
+                //printf("get_word_ext.get_wordEXT=%i\n", ext_len);
+                return word_len + vers_len;
+            }
+        }
+    }
+
+    return word_len;
+}
+
+int get_querytag_value(parse_context *ctx) {
+    int cur = ctx->cursor;
+    int end = ctx->end;
+    char *begin = ctx->buff;
+
+    int size = 0;
+
+    while (cur < end) {
+        if (begin[cur] == '\0' || begin[cur] == '\n' || begin[cur] == ' ' || begin[cur] == '&') {
+            break;
+        } else {
+            size++;
+        }
+    }
+
+    if (size == 0)
+        return -1;
+
+    return size;
+}
+
 // [32.1] [32] [123.0].4.2.<other symbol>
 // [17.2].3
 int get_number(parse_context *ctx) {
@@ -418,7 +549,7 @@ int get_number(parse_context *ctx) {
     return -1;
 }
 
-// [32.1] [32] [123.0.4.2].<other symbol>
+// [32.1.2] [123.0.4.2].<other symbol>
 // [17.2.3].
 int get_version(parse_context *ctx) {
     int local = ctx->cursor;

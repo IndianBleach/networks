@@ -75,10 +75,13 @@ int get_version(parse_context *ctx);
 int get_ipaddr(parse_context *ctx);
 int getm_path(parse_context *ctx);
 int get_tag(parse_context *ctx);
+int get_querytag_value(parse_context *ctx);
 
 // PRE-PARSING
 httpmethod extract_method(parse_context *ctx);
-httppath_segment *extract_path(parse_context *ctx);
+int extract_path(parse_context *ctx, httppath_segment **__out_pathhead);
+int extract_httpversion(parse_context *ctx, httpversion *__out_version);
+int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams);
 
 // token
 // token_list

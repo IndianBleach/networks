@@ -1,14 +1,13 @@
+#include "../include/core/vector.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct vector {
-    void *buff;
-    size_t capacity;
-    size_t size;
-    size_t type_size;
-} vector;
+void *vector_begin(vector *vec) { return vec->buff; }
+
+void *vector_end(vector *vec) { return vec->buff + (vec->size * vec->type_size); }
 
 void vector_init(vector *vec, size_t base_cap, size_t type_sz) {
     vec->buff = (void *) malloc(sizeof(void *) * base_cap);

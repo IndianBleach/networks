@@ -31,5 +31,11 @@ void vector_clear(vector *vec);
 
 void vector_reserve(vector *vec, size_t count);
 
+//
+void *vector_begin(vector *vec);
+void *vector_end(vector *vec);
 
+// fix. separate
+
+//int find_str(void **beginptr, void **endptr, int len, void *target);
 #endif

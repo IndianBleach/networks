@@ -45,6 +45,12 @@ typedef struct httppath_segment {
 
 httppath_segment *pathsegment_new(int value_size, char *value);
 
+////////// UTILS
+typedef struct httpversion {
+    unsigned short seg1;
+    unsigned short seg2;
+} httpversion;
+
 // PORT
 typedef unsigned int nt_port;
 typedef const char *nt_ipstr;
