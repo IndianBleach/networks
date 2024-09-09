@@ -1,18 +1,19 @@
 #ifndef _HTTP_REQUEST_
 #define _HTTP_REQUEST_
 
+#include "../include/core/vector.h"
 #include "../include/http/httpinfo.h"
-#include "vector.h"
 
 // REQUEST BUFFER
-typedef struct httrequest_buff {
+typedef struct httprequest_buff {
     char *ptr;
     unsigned int capacity;
-} httrequest_buff;
+} httprequest_buff;
 
-httrequest_buff *reqbuff_new(unsigned int cap);
-void reqbuff_dstr(httrequest_buff *buff);
-void reqbuff_copy(const char *source, httrequest_buff *dest);
+httprequest_buff *requestbuff_new(unsigned int cap);
+void requestbuff_dstr(httprequest_buff *buff);
+void requestbuff_copy(const char *source, httprequest_buff *dest);
+void requestbuff_init(httprequest_buff *buff, unsigned int capacity);
 
 /////////// HEADER
 typedef enum header_value_type {
@@ -35,8 +36,8 @@ typedef union header_value {
     //                                 ..next->next.
     struct {
         size_t count;
-        header_value *value;
-        header_value *next;
+        union header_value *value;
+        union header_value *next;
     } list;
 
 
@@ -50,14 +51,14 @@ typedef struct httpheader {
 
 /////////// QUERY
 typedef enum queryparam_value_type {
-    LIST_VALUES,
-    VALUE,
+    QUERY_VALUE,
+    QUERY_VALUE_LIST,
 } queryparam_value_type;
 
 typedef union queryparam_value {
     struct {
         const char *value;
-        queryparam_value *next;
+        union queryparam_value *next;
     } list;
 
     const char *value;
@@ -72,7 +73,7 @@ typedef struct queryparam {
 typedef struct httprequest {
     vector *httpheaders;
     vector *queryparams;
-    httppath_head *path;
+    httppath_segment *path;
     httpmethod method;
     nt_addrstr host_addr;
     const char *body;

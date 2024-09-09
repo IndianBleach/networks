@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-httpreq_buff *reqbuff_new(unsigned int cap) {
-    httpreq_buff *buff = (httpreq_buff *) malloc(sizeof(httpreq_buff));
+httprequest_buff *requestbuff_new(unsigned int cap) {
+    httprequest_buff *buff = (httprequest_buff *) malloc(sizeof(httprequest_buff));
     buff->capacity = cap;
     buff->ptr = (char *) malloc(sizeof(char) * (cap + 1));
     memset(buff->ptr, 0, cap);
@@ -13,12 +13,9 @@ httpreq_buff *reqbuff_new(unsigned int cap) {
     return buff;
 };
 
-void reqbuff_dstr(httpreq_buff *buff) {
-    free(buff->ptr);
-    free(buff);
-};
+void requestbuff_dstr(httprequest_buff *buff) { free(buff->ptr); };
 
-void reqbuff_copy(const char *source, httpreq_buff *dest) {
+void requestbuff_copy(const char *source, httprequest_buff *dest) {
     char t;
     int i = 0;
     while ((t = *source++) && i < dest->capacity) {
@@ -27,4 +24,9 @@ void reqbuff_copy(const char *source, httpreq_buff *dest) {
     }
 
     dest->ptr[dest->capacity] = '\0';
+};
+
+void requestbuff_init(httprequest_buff *buff, unsigned int capacity) {
+    buff->capacity = capacity;
+    buff->ptr = (char *) malloc(sizeof(char) * capacity);
 }

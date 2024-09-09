@@ -82,6 +82,7 @@ void vector_reserve(vector *vec, size_t count) {
     }
 }
 
+/*
 int main() {
     printf("main.start\n");
 
@@ -125,3 +126,4 @@ int main() {
 
     return 0;
 }
+*/

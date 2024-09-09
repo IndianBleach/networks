@@ -67,12 +67,32 @@ TODO:
         -ipadrr addr; look(tag=host)
 */
 
+// extract_queryparams
+// extract_version
 
-int main2() {
+
+int main() {
     printf("test2.start\n");
 
+    const char *t = "/users/views/login.html d";
 
-    const char *t = "connection: 12.2.344.4:2\nhost:keep-alive 123.3.4 123 123.4\0";
+    parse_context ctx;
+    ctx.buff = t;
+    ctx.cursor = 0;
+    ctx.end = strlen(t);
+    httppath_segment *head = extract_path(&ctx);
+
+    while (head != NULL) {
+        printf("NODE=%s\n", head->value);
+
+        if (head->next != NULL) {
+            head = head->next;
+        } else {
+            break;
+        }
+    }
+
+
     /*
     parse_context ctx;
     ctx.buff = t;

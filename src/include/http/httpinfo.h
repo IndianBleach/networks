@@ -2,6 +2,7 @@
 #define _HTTP_INFO_H_
 
 #include <stdbool.h>
+#include <unistd.h>
 
 typedef enum http_statuscode http_statuscode;
 
@@ -33,15 +34,16 @@ typedef enum httpmethod {
     HTTP_POST,
     HTTP_DELETE,
     HTTP_PUT,
+    HTTP_METHOD_UNDF = -1,
 } httpmethod;
 
 /////////// PATH
 typedef struct httppath_segment {
-    const char *value;
-    httppath_segment *next;
+    char *value;
+    struct httppath_segment *next;
 } httppath_segment;
 
-typedef httppath_segment httppath_head;
+httppath_segment *pathsegment_new(int value_size, char *value);
 
 // PORT
 typedef unsigned int nt_port;

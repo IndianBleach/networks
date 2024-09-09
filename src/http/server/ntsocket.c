@@ -140,6 +140,10 @@ void ntsock_io_run(ntnode_config *config) {
     ssize_t bytes_read;
     char rbuff[1024];
 
+    // fix
+    httprequest_buff reqbuff;
+    requestbuff_init(&reqbuff, 1024);
+
     // add event (listener (server))
     epoll_add(epoll_fd, socket_fd, EPOLLIN);
 
@@ -162,8 +166,8 @@ void ntsock_io_run(ntnode_config *config) {
                 fdssl_accept(epoll_fd, socket_fd, sslctx, cssl);
             } else if (poll_events[i].events & EPOLLIN) {
                 printf("node.%lu: EPOLLIN.\n", tid);
-                fdssl_read(epoll_fd, client_fd, rbuff, cssl);
-                printf("readed=%s\n", rbuff);
+                fdssl_read(epoll_fd, client_fd, reqbuff.ptr, cssl);
+                printf("READ=%s\n", reqbuff.ptr);
                 //fdssl_read(epoll_fd, client_fd, rbuff, cssl);
             } else if (poll_events[i].events & EPOLLOUT) {
                 printf("node.%lu: EPOLLOUT.\n", tid);

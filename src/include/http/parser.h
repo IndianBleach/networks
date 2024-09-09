@@ -1,7 +1,7 @@
 #ifndef _HTTP_PARSER_
 #define _HTTP_PARSER_
 
-#include "../include/http/httpinfo.h"
+#include "../include/http/request.h"
 
 // TOKEN
 typedef enum httpreq_tokentype {
@@ -44,7 +44,7 @@ typedef enum httpreq_tokentype {
 typedef struct httpreq_token {
     httpreq_tokentype type;
     const char *value;
-    httpreq_token *next;
+    struct httpreq_token *next;
 } httpreq_token;
 
 httpreq_token *token_new(const char *value, httpreq_tokentype type);
@@ -58,7 +58,7 @@ typedef struct parse_context {
     int end;
 } parse_context;
 
-void parse(httrequest_buff *buff);
+void parse(httprequest_buff *buff);
 
 void ctx_move(parse_context *ctx, int steps);
 char ctx_at(parse_context *ctx, int pos);
@@ -68,11 +68,17 @@ int is_float(parse_context *ctx, int len);
 
 int get_string(parse_context *ctx);
 int get_word(parse_context *ctx);
+int get_word_ext(parse_context *ctx);
+int get_word_version(parse_context *ctx);
 int get_number(parse_context *ctx);
 int get_version(parse_context *ctx);
 int get_ipaddr(parse_context *ctx);
 int getm_path(parse_context *ctx);
 int get_tag(parse_context *ctx);
+
+// PRE-PARSING
+httpmethod extract_method(parse_context *ctx);
+httppath_segment *extract_path(parse_context *ctx);
 
 // token
 // token_list

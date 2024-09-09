@@ -1,11 +1,14 @@
 #include "../include/http/parser.h"
 
+#include "../include/http/httpinfo.h"
+#include "../include/http/request.h"
+
 #include <pthread.h>
-#include <request.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+// TOKEN
 httpreq_token *token_new(const char *value, httpreq_tokentype type) {
     httpreq_token *ptr = (httpreq_token *) malloc(sizeof(httpreq_token));
     ptr->value = value;
@@ -30,8 +33,87 @@ void token_dump(httpreq_token *tk) {
     printf("val=%s type=%i\n", tk->value, tk->type);
 }
 
+// EXTRACT DATA
+httpmethod extract_method(parse_context *ctx) {
+    int cur = ctx->cursor;
+    char wordbuff[24];
+    int end = ctx->end;
+    char *begin = &ctx->buff[cur];
+
+    int i = cur;
+    for (; i < end; i++) {
+        if (begin[i] == ' ') {
+            break;
+        } else {
+            wordbuff[i] = begin[i];
+        }
+    }
+
+    wordbuff[i] = '\0';
+
+    if (strcmp(wordbuff, "GET") == 0) {
+        ctx_move(ctx, 3);
+        return HTTP_GET;
+    } else if (strcmp(wordbuff, "POST") == 0) {
+        ctx_move(ctx, 4);
+        return HTTP_POST;
+    } else if (strcmp(wordbuff, "DELETE") == 0) {
+        ctx_move(ctx, 7);
+        return HTTP_DELETE;
+    } else if (strcmp(wordbuff, "PUT") == 0) {
+        ctx_move(ctx, 3);
+        return HTTP_PUT;
+    } else
+        return HTTP_METHOD_UNDF;
+};
+
+httppath_segment *extract_path(parse_context *ctx) {
+    int cur = ctx->cursor;
+    int end = ctx->end;
+    char *begin = ctx->buff;
+
+    httppath_segment *head = NULL;
+    httppath_segment *tail;
+
+    int word_len = 0;
+    while (cur < end) {
+        if (begin[cur] == '/') {
+            cur++;
+            ctx_move(ctx, 1);
+            continue;
+        }
+
+        if (begin[cur] == ' ') {
+            break;
+        }
+
+        if ((word_len = get_word_ext(ctx)) > 0) {
+            // head.append
+            if (!head) {
+                //printf("P=%c\n", begin[cur]);
+                head = pathsegment_new(word_len, &begin[cur]);
+                //printf("PATH_SEG(AFT)=%s\n", head->value);
+                tail = head;
+            } else {
+                tail->next = pathsegment_new(word_len, &begin[cur]);
+                tail = tail->next;
+            }
+
+            ctx_move(ctx, word_len);
+            cur += word_len;
+
+        } else
+            break;
+    }
+
+    return head;
+
+    // ctx_move
+};
+
+// PARSING
 // fix: out format? vector/headers struct
-void parse(httrequest_buff *buff) {
+void parse(httprequest_buff *buff) {
     parse_context ctx;
     ctx.buff = buff->ptr;
     ctx.cursor = 0;
@@ -57,6 +139,7 @@ void parse(httrequest_buff *buff) {
         }
 
         int base_len;
+
 
         printf("cur=%c\n", ctx.buff[ctx.cursor]);
 
@@ -279,6 +362,32 @@ int get_word(parse_context *ctx) {
     }
 
     return size;
+}
+
+int get_word_ext(parse_context *ctx) {
+    int i = ctx->cursor;
+    char *begin = ctx->buff;
+    int size = 0;
+
+    int word_len = get_word(ctx);
+    if (word_len > 0) {
+        //printf("get_word_ext.get_word=%i\n", word_len);
+        //printf("get_word_ext.cur=%c\n", begin[word_len]);
+        //ctx->cursor += word_len;
+        i += word_len; // step next
+        //printf("CUR=%c\n", begin[i]);
+        if (begin[i] == '.') {
+            //ctx->cursor++;
+            i++;
+            int ext_len = get_word(ctx);
+            if (ext_len > 0) {
+                //printf("get_word_ext.get_wordEXT=%i\n", ext_len);
+                return word_len + ext_len;
+            }
+        }
+    }
+
+    return word_len;
 }
 
 // [32.1] [32] [123.0].4.2.<other symbol>
