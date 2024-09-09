@@ -1,5 +1,7 @@
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*
 
@@ -26,6 +28,8 @@ void log(FILE *fd, const char *__msg, const char *__caller, const char *__file, 
 #define __log_info(msg) log(stdout, msg, __func__, __FILE__, __LINE__);
 
 // ::::::: Iterators
+#pragma region Iterators
+
 typedef struct basic_iterator {
     void *begin;
     unsigned int diff;
@@ -78,31 +82,57 @@ void *iter_back(basic_iterator *it) {
     }
 }
 
-int foo() {
-    __log_err("sample error!");
-    return 5;
+#pragma endregion
+
+// ::::::: Containers
+#pragma region Array
+
+typedef struct array {
+    const basic_iterator iterator;
+} array;
+
+#define __array_at(ARR, TYPE, INDEX) (TYPE *) array_at(ARR, INDEX);
+
+void array_init(array *arr, size_t cap, unsigned int elem_size) {
+    void *begin = malloc(elem_size * cap);
+    iter_init(&arr->iterator, begin, elem_size, cap);
 }
+
+size_t array_size(array *arr) { return arr->iterator.len; }
+
+void *array_at(array *arr, size_t __index) {
+    printf("len=%i\n", arr->iterator.len);
+    if (__index >= arr->iterator.len) {
+        __log_err("index>arr.len");
+    } else {
+        iter_set(&arr->iterator, __index);
+        return iter_cur(&arr->iterator);
+    }
+}
+
+void array_set(array *arr, size_t __index, void *__value) {
+    if (__index >= arr->iterator.len) {
+        __log_err("index>arr.len");
+    } else {
+        iter_set(&arr->iterator, __index);
+        printf("diff=%i\n", arr->iterator.diff);
+        memcpy(iter_cur(&arr->iterator), __value, arr->iterator.diff);
+    }
+}
+
+#pragma endregion
 
 int main() {
     printf("HI!\n");
 
-    int t[4] = {1, 2, 3, 4};
+    int v1 = 5;
 
-    basic_iterator it;
-    iter_init(&it, t, sizeof(int), 4);
+    array a;
+    array_init(&a, 4, sizeof(int));
+    array_set(&a, 3, &v1);
 
-    printf("init: begin=%p\n", iter_begin(&it));
-    printf("init: end=%p\n", iter_end(&it));
-    printf("init: duff=%i\n", it.diff);
-
-    int *cur = __iter_cur(&it, int);
-    printf("cur=%i\n", *cur);
-
-    cur = __iter_end(&it, int);
-    printf("cur=%i\n", *cur);
-
-
-    foo();
+    int cur = *__array_at(&a, int, 3);
+    printf("at=%i\n", cur);
 
     return 0;
 }
