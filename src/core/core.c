@@ -1,4 +1,6 @@
 
+#include "../include/core/core.h"
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -7,57 +9,12 @@
 #include <string.h>
 #include <string.h> // Для strdup
 
-/*
-
-    vector
-    -iterator
-        void vector_init(vector *vec, size_t base_cap, size_t type_sz);
-
-        void vector_dstr(vector *vec);
-
-        void vector_ensure_capacity(vector *vec, size_t new_cap);
-
-        void vector_push_back(vector *vec, void *elem);
-
-        void *vector_at(vector *vec, size_t index);
-
-        void vector_resize(vector *vec, size_t new_size);
-
-        void vector_shrink_to_fit(vector *vec);
-
-        void vector_clear(vector *vec);
-
-        void vector_reserve(vector *vec, size_t count);
-
-    array
-    -iterator()
-    -
-*/
-
-
 void log(FILE *fd, const char *__msg, const char *__caller, const char *__file, const int __line) {
     fprintf(fd, "[%s:%i <%s>]: %s\n", __file, __line, __caller, __msg);
 }
 
-#define __log_err(msg) log(stderr, msg, __func__, __FILE__, __LINE__);
-#define __log_info(msg) log(stdout, msg, __func__, __FILE__, __LINE__);
-
 // ::::::: Iterators
 #pragma region Iterators
-
-typedef struct basic_iterator {
-    void *begin;
-    unsigned int diff;
-    size_t len;
-    size_t cur;
-} basic_iterator;
-
-#define __iter_begin(ITER, TYPE) (TYPE *) iter_begin(ITER);
-#define __iter_end(ITER, TYPE) (TYPE *) iter_end(ITER);
-#define __iter_cur(ITER, TYPE) (TYPE *) iter_cur(ITER);
-#define __iter_set(ITER, POS) iter_set(ITER, POS);
-#define __iter_next(ITER, TYPE) (TYPE *) iter_next(ITER);
-#define __iter_back(ITER, TYPE) (TYPE *) iter_back(ITER);
 
 void iter_init(basic_iterator *it, void *__begin, unsigned int __diff, size_t __len) {
     it->begin = __begin;
@@ -107,12 +64,6 @@ void *iter_realloc(basic_iterator *it, size_t _newcapacity) {
 // ::::::: Containers
 #pragma region Array
 
-typedef struct array {
-    const basic_iterator iterator;
-} array;
-
-#define __array_at(ARR, TYPE, INDEX) (TYPE *) array_at(ARR, INDEX);
-
 void array_init(array *arr, size_t cap, unsigned int elem_size) {
     void *begin = malloc(elem_size * cap);
     iter_init(&arr->iterator, begin, elem_size, cap);
@@ -145,16 +96,6 @@ void array_dstr(array *arr) { free(arr->iterator.begin); }
 #pragma endregion
 
 #pragma region Vector
-
-typedef struct vector {
-    size_t size;
-    const basic_iterator iterator;
-    // size + dynamic memory blocks
-} vector;
-
-#define __vector_at(VEC, TYPE, INDEX) (TYPE *) vector_at(VEC, INDEX)
-#define __vector_first(VEC, TYPE) (TYPE *) vector_first(VEC)
-#define __vector_last(VEC, TYPE) (TYPE *) vector_last(VEC)
 
 void vector_init(vector *vec, size_t __basecap, size_t __elem_sz) {
     void *begin = malloc(__elem_sz * __basecap);
@@ -231,6 +172,11 @@ void vector_reserve(vector *vec, size_t count) {
         vector_ensure_capacity(vec, count);
     }
 }
+
+#pragma endregion
+
+#pragma region Hashmap
+
 
 #pragma endregion
 
@@ -382,6 +328,7 @@ void *hashmap_set(hashmap *map, const char *key, void *value) {
 
 int main() {
     printf("HI!\n");
+
 
     int v1 = 5;
     int v2 = 9;

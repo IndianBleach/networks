@@ -103,52 +103,16 @@ int usr_comp(usr *a, char *name) {
 int main() {
     printf("test2.start\n");
 
-    usr *t1 = crt("John");
-    usr *t2 = crt("Serp");
-    usr *t3 = crt("Katya");
-
-    printf("usr: p=%p name=%s\n", t1, t1->name);
-    printf("usr: p=%p name=%s\n", t2, t2->name);
-    printf("usr: p=%p name=%s\n", t2, t3->name);
-
-    vector vec;
-    vector_init(&vec, 10, sizeof(usr *));
-
-    vector_push_back(&vec, t1);
-    vector_push_back(&vec, t2);
-    vector_push_back(&vec, t3);
-
-
-    usr *tt = (usr *) vector_at(&vec, 0);
-    printf("AT0=%s\n", tt->name);
-
-    int res = find_str(vector_begin(&vec), vector_end(&vec), vec.size, "Katya", usr_comp);
-
-
-    printf("RES=%i\n", res);
-
-    return;
-
-    queryparam *p = queryparam_new(QUERY_VALUE, 5, "apple");
-    printf("qd=%p\n", p);
-    printf("pva=%p\n", &p->value);
-    printf("q=%s\n", p->value.value);
-
-    return 1;
-
-    const char *t = "1.0\n";
+    char *t = "?user=john&age=21";
 
     parse_context ctx;
     ctx.buff = t;
     ctx.cursor = 0;
     ctx.end = strlen(t);
 
-    httpversion version;
-    int len = extract_httpversion(&ctx, &version);
-    printf("version=%hu %hu\n", version.seg1, version.seg2);
+    vector extract_queryparams(&ctx, )
 
-
-    /*
+        /*
     parse_context ctx;
     ctx.buff = t;
     ctx.cursor = 0;
@@ -169,5 +133,5 @@ int main() {
     reqbuff_dstr(reqbuff);
 
     */
-    printf("test2.end\n");
+        printf("test2.end\n");
 }
