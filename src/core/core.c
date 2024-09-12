@@ -1,8 +1,11 @@
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdio.h> // Для printf
 #include <stdlib.h>
 #include <string.h>
+#include <string.h> // Для strdup
 
 /*
 
@@ -231,6 +234,150 @@ void vector_reserve(vector *vec, size_t count) {
 
 #pragma endregion
 
+#include <string.h>
+
+// hashmap
+#define FNV_OFFSET 14695981039346656037UL
+#define FNV_PRIME 1099511628211UL
+
+typedef struct hashmap_entry {
+    const char *key;
+    void *value;
+    size_t _index;
+} hashmap_entry;
+
+typedef struct hashmap {
+    hashmap_entry *entries;
+    size_t capacity;
+    size_t len;
+} hashmap;
+
+#define HASHMAP_INIT_CAP 16
+
+void hashmap_init(hashmap *h) {
+    h->len = 0;
+    h->capacity = HASHMAP_INIT_CAP;
+    h->entries = (hashmap_entry *) calloc(sizeof(hashmap_entry), h->capacity);
+}
+
+void hashmap_dstr(hashmap *h) {
+    for (size_t i = 0; i < h->len; i++) {
+        printf("FREE\n");
+        free(h->entries[i].key);
+    }
+
+    free(h->entries);
+}
+
+unsigned int hash_key(const char *key) {
+    unsigned int hash = FNV_OFFSET;
+    for (const char *p = key; *p; p++) {
+        hash ^= (unsigned int) (unsigned char) (*p);
+        hash *= FNV_PRIME;
+    }
+    return hash;
+}
+
+void *hashmap_get(hashmap *map, const char *key) {
+    unsigned int hash = hash_key(key);
+    size_t start_index = (size_t) (hash & (unsigned int) (map->capacity - 1));
+
+    printf("index=%i en=%p\n", start_index, map->entries);
+
+    while (map->entries[start_index].key != NULL) // index < map.len
+    {
+        if (strcmp(map->entries[start_index].key, key) == 0) {
+            return map->entries[start_index].value;
+        } else {
+            // linear probing
+            start_index++;
+            if (start_index >= map->capacity) {
+                start_index = 0;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+const char *hashmap_set_entry(hashmap *map, const char *key, void *value, size_t *plen) {
+    // hashing key
+    // check enty at the INDEX
+    // probing next values
+
+    unsigned int hash = hash_key(key);
+    size_t index = (size_t) (hash & (unsigned int) (map->capacity - 1));
+
+    printf("INDEX=%i\n", index);
+
+    while (map->entries[index].key != NULL) {
+        if (strcmp(map->entries[index].key, key) == 0) { // key is exists
+            map->entries[index].value = value;
+            return value;
+        }
+
+        index++;
+        if (index >= map->capacity) {
+            index = 0;
+        }
+    }
+
+    // key not found.
+    if (plen != NULL) {
+        // fix
+        int len = strlen(key);
+        char *kbuff = (char *) malloc(sizeof(char) * (len + 1));
+        kbuff[len] = '\0';
+        strncpy(kbuff, key, len);
+        key = kbuff;
+
+        (*plen)++;
+    }
+
+    map->entries[index].key = (char *) key;
+    map->entries[index].value = value;
+
+    return key;
+}
+
+bool hashmap_expand(hashmap *map) {
+    size_t new_cap = map->capacity * 2;
+
+    printf("hs.expand\n");
+
+    hashmap_entry *old = map->entries;
+    size_t old_cap = map->capacity;
+    size_t old_len = map->len;
+    hashmap_entry *new = calloc(new_cap, sizeof(hashmap_entry));
+
+    map->entries = new;
+    map->capacity = new_cap;
+
+    for (size_t i = 0; i < old_cap; i++) {
+        hashmap_entry cur = old[i];
+        if (cur.key != NULL) {
+            hashmap_set_entry(map, cur.key, cur.value, NULL);
+        }
+    }
+
+    free(old);
+    return true;
+}
+
+void *hashmap_set(hashmap *map, const char *key, void *value) {
+    if (value == NULL) {
+        return NULL;
+    }
+
+    // ensure cap
+    if (map->len >= (map->capacity / 2)) {
+        // expand
+        hashmap_expand(map);
+    }
+
+    return hashmap_set_entry(map, key, value, &map->len);
+}
+
 // rm
 
 int main() {
@@ -240,21 +387,32 @@ int main() {
     int v2 = 9;
     int v3 = -20;
 
-    vector v;
-    vector_init(&v, 2, sizeof(int));
+    hashmap map;
+    hashmap_init(&map);
 
-    void *end = iter_end(&v.iterator);
-    void *s = iter_begin(&v.iterator);
+    void *g1 = hashmap_get(&map, "apple2");
+    hashmap_set(&map, "apple", &v1);
+    hashmap_set(&map, "apple2", &v1);
+    hashmap_set(&map, "appl3", &v2);
+    hashmap_set(&map, "appl4", &v1);
+    hashmap_set(&map, "appl5", &v1);
+    hashmap_set(&map, "appl6", &v3);
+    hashmap_set(&map, "appl7", &v1);
+    hashmap_set(&map, "appl8", &v1);
+    hashmap_set(&map, "appl9", &v3);
+    hashmap_set(&map, "apple10", &v1);
 
-    printf("s=%p end=%p\n", s, end);
+    printf("v1=%i\n", *(int *) hashmap_get(&map, "apple"));
+    printf("v2=%i\n", *(int *) hashmap_get(&map, "apple2"));
+    printf("v3=%i\n", *(int *) hashmap_get(&map, "appl3"));
+    printf("v4=%i\n", *(int *) hashmap_get(&map, "appl4"));
+    printf("v5=%i\n", *(int *) hashmap_get(&map, "appl5"));
+    printf("v6=%i\n", *(int *) hashmap_get(&map, "appl6"));
+    printf("v7=%i\n", *(int *) hashmap_get(&map, "appl7"));
+    printf("v8=%i\n", *(int *) hashmap_get(&map, "appl8"));
+    printf("v10=%i\n", *(int *) hashmap_get(&map, "apple10"));
 
-    vector_pushback(&v, &v1);
-    vector_pushback(&v, &v2);
-
-    int *cast = __vector_last(&v, int);
-    printf("cast=%i\n", *cast);
-
-    vector_dstr(&v);
+    hashmap_dstr(&map);
 
     return 0;
 }
