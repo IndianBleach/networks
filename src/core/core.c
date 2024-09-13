@@ -9,6 +9,16 @@
 #include <string.h>
 #include <string.h> // Для strdup
 
+// ::::::: Strings
+char *cstrdup(const char *str) {
+    size_t len = strlen(str);
+    char *buff = (char *) malloc(sizeof(char) * (len + 1));
+    buff[len] = '\0';
+    strncpy(buff, str, len);
+
+    return buff;
+}
+
 void log(FILE *fd, const char *__msg, const char *__caller, const char *__file, const int __line) {
     fprintf(fd, "[%s:%i <%s>]: %s\n", __file, __line, __caller, __msg);
 }
@@ -175,16 +185,156 @@ void vector_reserve(vector *vec, size_t count) {
 
 #pragma endregion
 
-#pragma region Hashmap
+#pragma region HashSet
 
+#define FNV_OFFSET 14695981039346656037UL
+#define FNV_PRIME 1099511628211UL
+
+#define HASHSET_INIT_CAP 4
+
+typedef struct hashset_entry {
+    char *key;
+} hashset_entry;
+
+typedef struct hashset {
+    basic_iterator iterator;
+    size_t size;
+} hashset;
+
+unsigned int hash_key(const char *key) {
+    unsigned int hash = FNV_OFFSET;
+    for (const char *p = key; *p; p++) {
+        hash ^= (unsigned int) (unsigned char) (*p);
+        hash *= FNV_PRIME;
+    }
+    return hash;
+}
+
+void hashset_init(hashset *set) {
+    void *buff = (void *) calloc(sizeof(hashset_entry), HASHSET_INIT_CAP);
+    iter_init(&set->iterator, buff, sizeof(hashset_entry), HASHSET_INIT_CAP);
+    set->size = 0;
+}
+
+void hashset_dstr(hashset *set) { free(set->iterator.begin); }
+
+void hashset_add(hashset *set, char *key) {
+    // get hash
+    // get index
+    // check at the index
+    // insert if no ex
+
+    unsigned int hash = hash_key(key);
+    size_t index = (size_t) (hash & (unsigned int) (set->iterator.len - 1));
+
+    //printf("INDEX=%i BUFF=%p LEN=%i\n", index, set->iterator.begin, set->iterator.len);
+
+    hashset_entry *buff = (hashset_entry *) set->iterator.begin;
+    while (buff[index].key != NULL) {
+        if (strcmp(buff[index].key, key) == 0) {
+            return;
+        } else {
+            index++;
+            if (index >= set->iterator.len) {
+                index = 0;
+            }
+        }
+    }
+
+    // not found. insert
+    // string
+
+    buff[index].key = cstrdup(key);
+    set->size++;
+
+    if (set->size >= (set->iterator.len / 2)) {
+        hashset_ensure_capacity(set, set->iterator.len * 2);
+    }
+}
+
+int hashset_get(hashset *set, const char *key) {
+    unsigned int hash = hash_key(key);
+    size_t index = (size_t) (hash & (unsigned int) (set->iterator.len - 1));
+
+    hashset_entry *buff = (hashset_entry *) set->iterator.begin;
+    while (buff[index].key != NULL) {
+        //printf("CUR=%i\n", index);
+        if (strcmp(buff[index].key, key) == 0) {
+            return index;
+        } else {
+            index++;
+            if (index >= set->iterator.len) {
+                index = 0;
+            }
+        }
+    }
+
+    return -1;
+}
+
+void hashset_ensure_capacity(hashset *set, size_t new_cap) {
+    // delete old buff
+    // new buff and recopy elements
+
+    hashset_entry *old_buff = set->iterator.begin;
+    size_t old_cap = set->iterator.len;
+
+    void *buff = (void *) calloc(sizeof(hashset_entry), new_cap);
+    set->iterator.begin = buff;
+    set->iterator.len = new_cap;
+    set->size = 0;
+
+    // copy elems
+    for (size_t i = 0; i < old_cap; i++) {
+        //printf("I=%i\n", i);
+        if (old_buff[i].key != NULL) {
+            hashset_add(set, old_buff[i].key);
+            free(old_buff[i].key);
+        }
+    }
+
+    free(old_buff);
+}
+
+void hashset_delete(hashset *set, const char *key) {
+    int index = hashset_get(set, key);
+    if (index > 0) {
+        iter_set(&set->iterator, index);
+        hashset_entry *item = (hashset_entry *) iter_cur(&set->iterator);
+        //printf("GETTED=%s %i\n", item->key, index);
+        memset(item->key, NULL, strlen(item->key));
+        set->size--;
+    }
+}
+
+char *hashset_at(hashset *set, size_t index) {
+    if (index >= set->iterator.len)
+        return NULL;
+    iter_set(&set->iterator, index);
+    hashset_entry *elem = (hashset_entry *) iter_cur(&set->iterator);
+
+    return elem->key;
+}
+
+void hashset_dump(hashset *set) {
+    //printf("hashset_dump: i=0 len=%i\n", set->iterator.len);
+    for (size_t i = 0; i < set->iterator.len; i++) {
+        printf("set[%i]= %s\n", i, hashset_at(set, i));
+    }
+}
+
+// init
+// new
+// _ensure_cap
+// add(key)
+// delete(key)
+// contains(key)
 
 #pragma endregion
 
 #include <string.h>
 
 // hashmap
-#define FNV_OFFSET 14695981039346656037UL
-#define FNV_PRIME 1099511628211UL
 
 typedef struct hashmap_entry {
     const char *key;
@@ -213,15 +363,6 @@ void hashmap_dstr(hashmap *h) {
     }
 
     free(h->entries);
-}
-
-unsigned int hash_key(const char *key) {
-    unsigned int hash = FNV_OFFSET;
-    for (const char *p = key; *p; p++) {
-        hash ^= (unsigned int) (unsigned char) (*p);
-        hash *= FNV_PRIME;
-    }
-    return hash;
 }
 
 void *hashmap_get(hashmap *map, const char *key) {
@@ -329,37 +470,28 @@ void *hashmap_set(hashmap *map, const char *key, void *value) {
 int main() {
     printf("HI!\n");
 
+    hashset set;
+    hashset_init(&set);
+    hashset_add(&set, "apple");
+    hashset_add(&set, "apple2");
+    hashset_add(&set, "banana-expadqwdqwdw");
+    hashset_add(&set, "banana-expadqw123dqwdw");
+    hashset_add(&set, "banana-qwd");
+    hashset_add(&set, "banana-123");
 
-    int v1 = 5;
-    int v2 = 9;
-    int v3 = -20;
+    printf("t1refwefwe\n");
 
-    hashmap map;
-    hashmap_init(&map);
+    int t11 = hashset_get(&set, "apple2");
+    hashset_delete(&set, "apple2");
 
-    void *g1 = hashmap_get(&map, "apple2");
-    hashmap_set(&map, "apple", &v1);
-    hashmap_set(&map, "apple2", &v1);
-    hashmap_set(&map, "appl3", &v2);
-    hashmap_set(&map, "appl4", &v1);
-    hashmap_set(&map, "appl5", &v1);
-    hashmap_set(&map, "appl6", &v3);
-    hashmap_set(&map, "appl7", &v1);
-    hashmap_set(&map, "appl8", &v1);
-    hashmap_set(&map, "appl9", &v3);
-    hashmap_set(&map, "apple10", &v1);
+    hashset_add(&set, "apple2");
 
-    printf("v1=%i\n", *(int *) hashmap_get(&map, "apple"));
-    printf("v2=%i\n", *(int *) hashmap_get(&map, "apple2"));
-    printf("v3=%i\n", *(int *) hashmap_get(&map, "appl3"));
-    printf("v4=%i\n", *(int *) hashmap_get(&map, "appl4"));
-    printf("v5=%i\n", *(int *) hashmap_get(&map, "appl5"));
-    printf("v6=%i\n", *(int *) hashmap_get(&map, "appl6"));
-    printf("v7=%i\n", *(int *) hashmap_get(&map, "appl7"));
-    printf("v8=%i\n", *(int *) hashmap_get(&map, "appl8"));
-    printf("v10=%i\n", *(int *) hashmap_get(&map, "apple10"));
+    int t1 = hashset_get(&set, "apple");
+    int t2 = hashset_get(&set, "apple2");
+    int t3 = hashset_get(&set, "banana3");
 
-    hashmap_dstr(&map);
+
+    hashset_dump(&set);
 
     return 0;
 }
