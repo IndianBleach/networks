@@ -7,7 +7,6 @@
 #include <stdio.h> // Для printf
 #include <stdlib.h>
 #include <string.h>
-#include <string.h> // Для strdup
 
 // ::::::: Strings
 char *cstrdup(const char *str) {
@@ -216,7 +215,14 @@ void hashset_init(hashset *set) {
     set->size = 0;
 }
 
-void hashset_dstr(hashset *set) { free(set->iterator.begin); }
+void hashset_dstr(hashset *set) {
+    hashset_entry *buff = (hashset_entry *) set->iterator.begin;
+    for (int i = 0; i < set->iterator.len; i++) {
+        free(buff[i].key);
+    }
+
+    free(set->iterator.begin);
+}
 
 void hashset_add(hashset *set, char *key) {
     // get hash
@@ -332,166 +338,196 @@ void hashset_dump(hashset *set) {
 
 #pragma endregion
 
-#include <string.h>
+#pragma region Hashmap
 
-// hashmap
+#define HASHMAP_INIT_CAP 4
 
 typedef struct hashmap_entry {
-    const char *key;
     void *value;
-    size_t _index;
+    const char *key;
+    int flags;
 } hashmap_entry;
 
 typedef struct hashmap {
-    hashmap_entry *entries;
-    size_t capacity;
-    size_t len;
+    basic_iterator iterator;
+    size_t size;
+    size_t type_sz;
 } hashmap;
 
-#define HASHMAP_INIT_CAP 16
-
-void hashmap_init(hashmap *h) {
-    h->len = 0;
-    h->capacity = HASHMAP_INIT_CAP;
-    h->entries = (hashmap_entry *) calloc(sizeof(hashmap_entry), h->capacity);
+void hashmap_init(hashmap *map, int type_sz) {
+    void *buff = calloc(sizeof(hashmap_entry), HASHMAP_INIT_CAP);
+    iter_init(&map->iterator, buff, sizeof(hashmap_entry), HASHMAP_INIT_CAP);
+    map->size = 0;
+    map->type_sz = type_sz;
 }
 
-void hashmap_dstr(hashmap *h) {
-    for (size_t i = 0; i < h->len; i++) {
-        printf("FREE\n");
-        free(h->entries[i].key);
+void hashmap_add(hashmap *map, const char *__key, void *__value_buff) {
+    if (hashmap_get_index(map, __key) > 0) {
+        // exists
+        printf("exi: %s\n", __key);
+        return;
+    } else {
+        unsigned int hash = hash_key(__key);
+        size_t index = (size_t) (hash & (unsigned int) (map->iterator.len - 1));
+
+        hashmap_entry *buff = (hashmap_entry *) map->iterator.begin;
+
+        // while, linear probbing
+
+        //if (buff[index])
+        buff[index].key = cstrdup(__key);
+
+        printf("map.add: index=%i buff=%p key=%s\n", index, buff, buff[index].key);
+
+        // alloc new memorey for value
+        // memcpy to the buffer
+        buff[index].value = malloc(map->type_sz);
+        memcpy(buff[index].value, __value_buff, sizeof(void *));
+        buff[index].flags = 0;
+        map->size++;
+
+        //printf("sz=%i\n", map->size);
+        if (map->size >= (map->iterator.len / 2)) {
+            hashmap_ensure_capacity(map, map->iterator.len * 2);
+        }
     }
-
-    free(h->entries);
 }
 
-void *hashmap_get(hashmap *map, const char *key) {
-    unsigned int hash = hash_key(key);
-    size_t start_index = (size_t) (hash & (unsigned int) (map->capacity - 1));
+int hashmap_get_index(hashmap *map, const char *__key) {
+    unsigned int hash = hash_key(__key);
+    size_t index = (size_t) (hash & (unsigned int) (map->iterator.len - 1));
 
-    printf("index=%i en=%p\n", start_index, map->entries);
-
-    while (map->entries[start_index].key != NULL) // index < map.len
-    {
-        if (strcmp(map->entries[start_index].key, key) == 0) {
-            return map->entries[start_index].value;
-        } else {
-            // linear probing
-            start_index++;
-            if (start_index >= map->capacity) {
-                start_index = 0;
-            }
+    hashmap_entry *buff = (hashmap_entry *) map->iterator.begin;
+    while (buff[index].flags != -1 && buff[index].key != NULL) {
+        if (strcmp(buff[index].key, __key) == 0) {
+            // key found
+            return index;
         }
     }
 
-    return NULL;
+    return -1;
 }
 
-const char *hashmap_set_entry(hashmap *map, const char *key, void *value, size_t *plen) {
-    // hashing key
-    // check enty at the INDEX
-    // probing next values
-
-    unsigned int hash = hash_key(key);
-    size_t index = (size_t) (hash & (unsigned int) (map->capacity - 1));
-
-    printf("INDEX=%i\n", index);
-
-    while (map->entries[index].key != NULL) {
-        if (strcmp(map->entries[index].key, key) == 0) { // key is exists
-            map->entries[index].value = value;
-            return value;
-        }
-
-        index++;
-        if (index >= map->capacity) {
-            index = 0;
-        }
-    }
-
-    // key not found.
-    if (plen != NULL) {
-        // fix
-        int len = strlen(key);
-        char *kbuff = (char *) malloc(sizeof(char) * (len + 1));
-        kbuff[len] = '\0';
-        strncpy(kbuff, key, len);
-        key = kbuff;
-
-        (*plen)++;
-    }
-
-    map->entries[index].key = (char *) key;
-    map->entries[index].value = value;
-
-    return key;
-}
-
-bool hashmap_expand(hashmap *map) {
-    size_t new_cap = map->capacity * 2;
-
-    printf("hs.expand\n");
-
-    hashmap_entry *old = map->entries;
-    size_t old_cap = map->capacity;
-    size_t old_len = map->len;
-    hashmap_entry *new = calloc(new_cap, sizeof(hashmap_entry));
-
-    map->entries = new;
-    map->capacity = new_cap;
-
-    for (size_t i = 0; i < old_cap; i++) {
-        hashmap_entry cur = old[i];
-        if (cur.key != NULL) {
-            hashmap_set_entry(map, cur.key, cur.value, NULL);
-        }
-    }
-
-    free(old);
-    return true;
-}
-
-void *hashmap_set(hashmap *map, const char *key, void *value) {
-    if (value == NULL) {
+void *hashmap_get(hashmap *map, const char *__key) {
+    int find = hashmap_get_index(map, __key);
+    if (find == -1)
         return NULL;
-    }
 
-    // ensure cap
-    if (map->len >= (map->capacity / 2)) {
-        // expand
-        hashmap_expand(map);
-    }
-
-    return hashmap_set_entry(map, key, value, &map->len);
+    hashmap_entry *buff = (hashmap_entry *) map->iterator.begin;
+    return buff[find].value;
 }
 
-// rm
+void hashmap_ensure_capacity(hashmap *map, size_t new_cap) {
+    // delete old buff
+    // new buff and recopy elements
+
+    hashmap_entry *old_buff = (hashmap_entry *) map->iterator.begin;
+    size_t old_cap = map->iterator.len;
+
+    void *buff = (void *) calloc(sizeof(hashmap_entry), new_cap);
+    map->iterator.begin = buff;
+    map->iterator.len = new_cap;
+    map->size = 0;
+
+    printf("hashmap_ensure_capacity: old=%p new=%p cap=%i\n", old_buff, buff, new_cap);
+
+    // copy elems
+    for (size_t i = 0; i < old_cap; i++) {
+        //printf("I=%i\n", i);
+        if (old_buff[i].key != NULL) {
+            hashmap_add(map, old_buff[i].key, old_buff[i].value);
+
+            free(old_buff[i].key);
+            free(old_buff[i].value);
+        }
+    }
+
+    free(old_buff);
+}
+
+void hashmap_clear(hashmap *map) {
+    hashmap_entry *buff = (hashmap_entry *) map->iterator.begin;
+    for (size_t i = 0; i < map->iterator.len; i++) {
+        if (buff[i].flags != -1 && buff[i].key != NULL) {
+            printf("free: %s\n", buff[i].key);
+            free(buff[i].key);
+            free(buff[i].value);
+            buff[i].flags = -1;
+        }
+    }
+
+    map->size = 0;
+    //free(map->iterator.begin);
+}
+
+void *hashmap_at(hashmap *map, size_t index) {
+    if (index >= map->iterator.len)
+        return NULL;
+    iter_set(&map->iterator, index);
+    hashmap_entry *elem = (hashmap_entry *) iter_cur(&map->iterator);
+
+    return elem->key;
+}
+
+void hashmap_dump(hashmap *map) {
+    //printf("hashset_dump: i=0 len=%i\n", set->iterator.len);
+    for (size_t i = 0; i < map->iterator.len; i++) {
+        hashmap_entry *en = hashmap_at(map, i);
+        printf("map[%i]=  val=%p\n", i, en);
+    }
+}
+
+void hashmap_dstr(hashmap *map) {
+    printf("hashmap_dstr\n");
+
+    hashmap_entry *buff = (hashmap_entry *) map->iterator.begin;
+
+    for (size_t i = 0; i < map->iterator.len; i++) {
+        if (buff[i].flags != -1 && buff[i].key != NULL) {
+            printf("cur=%p\n", buff[i].value);
+            free(buff[i].value);
+            free(buff[i].key);
+        }
+    }
+
+    free(map->iterator.begin);
+}
+
+// get
+// add
+// has
+// ensure_cap
+// free
+// clear
+
+#pragma endregion
+
+typedef struct usr {
+    int age;
+    int value;
+} usr;
 
 int main() {
     printf("HI!\n");
 
-    hashset set;
-    hashset_init(&set);
-    hashset_add(&set, "apple");
-    hashset_add(&set, "apple2");
-    hashset_add(&set, "banana-expadqwdqwdw");
-    hashset_add(&set, "banana-expadqw123dqwdw");
-    hashset_add(&set, "banana-qwd");
-    hashset_add(&set, "banana-123");
+    usr u1;
+    u1.age = 12;
+    u1.value = 200;
 
-    printf("t1refwefwe\n");
+    hashmap map;
+    hashmap_init(&map, sizeof(usr));
+    hashmap_add(&map, "user1", &u1);
+    hashmap_add(&map, "user2", &u1);
+    hashmap_add(&map, "user3", &u1);
+    hashmap_add(&map, "user4", &u1);
 
-    int t11 = hashset_get(&set, "apple2");
-    hashset_delete(&set, "apple2");
-
-    hashset_add(&set, "apple2");
-
-    int t1 = hashset_get(&set, "apple");
-    int t2 = hashset_get(&set, "apple2");
-    int t3 = hashset_get(&set, "banana3");
-
-
-    hashset_dump(&set);
-
+    hashmap_clear(&map);
+    //hashmap_dstr(&map);
+    hashmap_add(&map, "user1", &u1);
+    hashmap_add(&map, "user2", &u1);
+    hashmap_add(&map, "user3", &u1);
+    hashmap_add(&map, "user4", &u1);
+    hashmap_clear(&map);
+    hashmap_dstr(&map);
     return 0;
 }
