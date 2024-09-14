@@ -373,6 +373,12 @@ void hashmap_add(hashmap *map, const char *__key, void *__value_buff) {
         hashmap_entry *buff = (hashmap_entry *) map->iterator.begin;
 
         // while, linear probbing
+        while (buff[index].flags != 0) {
+            index++;
+            if (index >= map->iterator.len) {
+                index = 0;
+            }
+        }
 
         //if (buff[index])
         buff[index].key = cstrdup(__key);
@@ -383,7 +389,7 @@ void hashmap_add(hashmap *map, const char *__key, void *__value_buff) {
         // memcpy to the buffer
         buff[index].value = malloc(map->type_sz);
         memcpy(buff[index].value, __value_buff, sizeof(void *));
-        buff[index].flags = 0;
+        buff[index].flags = 1;
         map->size++;
 
         //printf("sz=%i\n", map->size);
@@ -398,7 +404,7 @@ int hashmap_get_index(hashmap *map, const char *__key) {
     size_t index = (size_t) (hash & (unsigned int) (map->iterator.len - 1));
 
     hashmap_entry *buff = (hashmap_entry *) map->iterator.begin;
-    while (buff[index].flags != -1 && buff[index].key != NULL) {
+    while (buff[index].flags != 0 && buff[index].key != NULL) {
         if (strcmp(buff[index].key, __key) == 0) {
             // key found
             return index;
@@ -448,11 +454,11 @@ void hashmap_ensure_capacity(hashmap *map, size_t new_cap) {
 void hashmap_clear(hashmap *map) {
     hashmap_entry *buff = (hashmap_entry *) map->iterator.begin;
     for (size_t i = 0; i < map->iterator.len; i++) {
-        if (buff[i].flags != -1 && buff[i].key != NULL) {
+        if (buff[i].flags != 0 && buff[i].key != NULL) {
             printf("free: %s\n", buff[i].key);
             free(buff[i].key);
             free(buff[i].value);
-            buff[i].flags = -1;
+            buff[i].flags = 0;
         }
     }
 
@@ -483,7 +489,7 @@ void hashmap_dstr(hashmap *map) {
     hashmap_entry *buff = (hashmap_entry *) map->iterator.begin;
 
     for (size_t i = 0; i < map->iterator.len; i++) {
-        if (buff[i].flags != -1 && buff[i].key != NULL) {
+        if (buff[i].flags != 0 && buff[i].key != NULL) {
             printf("cur=%p\n", buff[i].value);
             free(buff[i].value);
             free(buff[i].key);
@@ -527,6 +533,11 @@ int main() {
     hashmap_add(&map, "user2", &u1);
     hashmap_add(&map, "user3", &u1);
     hashmap_add(&map, "user4", &u1);
+
+    int i1 = hashmap_get_index(&map, "user4");
+    int i2 = hashmap_get_index(&map, "user3");
+    printf("res=%i %i\n", i1, i2);
+
     hashmap_clear(&map);
     hashmap_dstr(&map);
     return 0;
