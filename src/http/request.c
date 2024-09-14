@@ -33,33 +33,30 @@ void requestbuff_init(httprequest_buff *buff, unsigned int capacity) {
     buff->ptr = (char *) malloc(sizeof(char) * capacity);
 }
 
-//
-queryparam *queryparam_new(queryparam_value_type type, int value_size, int tag_name_size) {
-    queryparam *q = (queryparam *) malloc(sizeof(queryparam));
-    queryparam_init(q, type, value_size, tag_name_size);
-
-    return q;
-};
-
-void queryparam_init(queryparam *param, queryparam_value_type type, int value_size, int tag_name_size) {
+void queryparam_init(queryparam *param, queryparam_value_type type, char *tag_name, char *tag_value) {
     param->type = type;
-    param->tag_name = cstr_init(tag_name_size);
     if (type == QUERY_VALUE) {
-        param->value.value = cstr_init(value_size);
+        param->tag_name = tag_name;
+        param->value.value = tag_value;
+        printf("sss=%s\n", param->value.value);
     } else if (type == QUERY_VALUE_LIST) {
-        param->value.list.value = cstr_init(value_size);
-        param->value.list.next = NULL;
+        param->value.value = NULL;
+        vector_init(&param->value.vec, 10, sizeof(char *));
+        vector_pushback(&param->value.vec, tag_value);
     }
 };
 
-char *queryparam_get_value(queryparam *qp) {
-    if (!qp) {
-        return NULL;
-    }
-
-    if (qp->type == QUERY_VALUE) {
-        return qp->value.value;
-    } else if (qp->type == QUERY_VALUE_LIST) {
-        return qp->value.list.value;
+void queryparam_switch_on_list(queryparam *param, queryparam_value_type type) {
+    if (param->type == QUERY_VALUE && type == QUERY_VALUE_LIST) {
+        // change from single value TO LIST
+        printf("%s\n", param->value.value);
+        char *old = param->value.value;
+        param->type = QUERY_VALUE_LIST;
+        //param->value.value = NULL;
+        //param->value.vec.size = 0;
+        vector_init(&param->value.vec, 10, sizeof(char *));
+        //vector_dump(&param->value.vec);
+        vector_pushback(&param->value.vec, &(old));
+        //param->value.value = NULL; // set old value NULL;
     }
 }

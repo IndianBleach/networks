@@ -1,18 +1,18 @@
 #ifndef _CORE_H_
-  #define _CORE_H
+#define _CORE_H_
 
-  #include <assert.h>
-  #include <stdbool.h>
-  #include <stdio.h>
-  #include <stdio.h> // Для printf
-  #include <stdlib.h>
-  #include <string.h>
-  #include <string.h> // Для strdup
+#include <assert.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdio.h> // Для printf
+#include <stdlib.h>
+#include <string.h>
+#include <string.h> // Для strdup
 
 // ::::::: Logging
 void log(FILE *fd, const char *__msg, const char *__caller, const char *__file, const int __line);
-  #define __log_err(msg) log(stderr, msg, __func__, __FILE__, __LINE__);
-  #define __log_info(msg) log(stdout, msg, __func__, __FILE__, __LINE__);
+#define __log_err(msg) log(stderr, msg, __func__, __FILE__, __LINE__);
+#define __log_info(msg) log(stdout, msg, __func__, __FILE__, __LINE__);
 
 // ::::::: Iterators
 typedef struct basic_iterator {
@@ -22,12 +22,12 @@ typedef struct basic_iterator {
     size_t cur;
 } basic_iterator;
 
-  #define __iter_begin(ITER, TYPE) (TYPE *) iter_begin(ITER);
-  #define __iter_end(ITER, TYPE) (TYPE *) iter_end(ITER);
-  #define __iter_cur(ITER, TYPE) (TYPE *) iter_cur(ITER);
-  #define __iter_set(ITER, POS) iter_set(ITER, POS);
-  #define __iter_next(ITER, TYPE) (TYPE *) iter_next(ITER);
-  #define __iter_back(ITER, TYPE) (TYPE *) iter_back(ITER);
+#define __iter_begin(ITER, TYPE) (TYPE *) iter_begin(ITER);
+#define __iter_end(ITER, TYPE) (TYPE *) iter_end(ITER);
+#define __iter_cur(ITER, TYPE) (TYPE *) iter_cur(ITER);
+#define __iter_set(ITER, POS) iter_set(ITER, POS);
+#define __iter_next(ITER, TYPE) (TYPE *) iter_next(ITER);
+#define __iter_back(ITER, TYPE) (TYPE *) iter_back(ITER);
 
 void iter_init(basic_iterator *it, void *__begin, unsigned int __diff, size_t __len);
 void iter_set(basic_iterator *it, size_t __pos);
@@ -43,7 +43,7 @@ typedef struct array {
     const basic_iterator iterator;
 } array;
 
-  #define __array_at(ARR, TYPE, INDEX) (TYPE *) array_at(ARR, INDEX);
+#define __array_at(ARR, TYPE, INDEX) (TYPE *) array_at(ARR, INDEX);
 
 void array_init(array *arr, size_t cap, unsigned int elem_size);
 size_t array_size(array *arr);
@@ -57,9 +57,9 @@ typedef struct vector {
     // size + dynamic memory blocks
 } vector;
 
-  #define __vector_at(VEC, TYPE, INDEX) (TYPE *) vector_at(VEC, INDEX)
-  #define __vector_first(VEC, TYPE) (TYPE *) vector_first(VEC)
-  #define __vector_last(VEC, TYPE) (TYPE *) vector_last(VEC)
+#define __vector_at(VEC, TYPE, INDEX) (TYPE *) vector_at(VEC, INDEX)
+#define __vector_first(VEC, TYPE) (TYPE *) vector_first(VEC)
+#define __vector_last(VEC, TYPE) (TYPE *) vector_last(VEC)
 
 void vector_init(vector *vec, size_t __basecap, size_t __elem_sz);
 void vector_dstr(vector *vec);
@@ -75,9 +75,9 @@ void vector_reserve(vector *vec, size_t count);
 void vector_dump(vector *vec);
 
 
-  #define FNV_OFFSET 14695981039346656037UL
-  #define FNV_PRIME 1099511628211UL
-  #define HASHSET_INIT_CAP 16
+#define FNV_OFFSET 14695981039346656037UL
+#define FNV_PRIME 1099511628211UL
+#define HASHSET_INIT_CAP 16
 
 typedef struct hashset_entry {
     char *key;
@@ -95,10 +95,10 @@ int hashset_get(hashset *set, const char *key);
 void hashset_delete(hashset *set, const char *key);
 char *hashset_at(hashset *set, size_t index);
 void hashset_dump(hashset *set);
-void hashset_ensure_capacity(hashset *set, size_t new_cap);
+extern void hashset_ensure_capacity(hashset *set, size_t new_cap);
 
 
-  #define HASHMAP_INIT_CAP 16
+#define HASHMAP_INIT_CAP 16
 
 typedef struct hashmap_entry {
     void *value;

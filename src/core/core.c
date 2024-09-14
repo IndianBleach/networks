@@ -30,6 +30,7 @@ void iter_init(basic_iterator *it, void *__begin, unsigned int __diff, size_t __
     it->diff = __diff;
     it->len = __len;
     it->cur = 0;
+    memset(it->begin, 0, it->len * it->diff);
 }
 
 void iter_set(basic_iterator *it, size_t __pos) {
@@ -108,6 +109,7 @@ void array_dstr(array *arr) { free(arr->iterator.begin); }
 
 void vector_init(vector *vec, size_t __basecap, size_t __elem_sz) {
     void *begin = malloc(__elem_sz * __basecap);
+    memset(begin, 0, __elem_sz * __basecap);
     iter_init(&vec->iterator, begin, __elem_sz, __basecap);
     vec->size = 0;
 }
@@ -204,6 +206,7 @@ unsigned int hash_key(const char *key) {
 void hashset_init(hashset *set) {
     void *buff = (void *) calloc(sizeof(hashset_entry), HASHSET_INIT_CAP);
     iter_init(&set->iterator, buff, sizeof(hashset_entry), HASHSET_INIT_CAP);
+
     set->size = 0;
 }
 
@@ -410,7 +413,7 @@ void hashmap_ensure_capacity(hashmap *map, size_t new_cap) {
     map->iterator.len = new_cap;
     map->size = 0;
 
-    printf("hashmap_ensure_capacity: old=%p new=%p cap=%i\n", old_buff, buff, new_cap);
+    //printf("hashmap_ensure_capacity: old=%p new=%p cap=%i\n", old_buff, buff, new_cap);
 
     // copy elems
     for (size_t i = 0; i < old_cap; i++) {
@@ -478,37 +481,35 @@ void hashmap_dstr(hashmap *map) {
 typedef struct usr {
     int age;
     int value;
+    char *name;
 } usr;
+
+usr *user_new() {
+    usr *u1 = malloc(sizeof(usr));
+    u1->age = 12;
+    u1->value = 200;
+    u1->name = (char *) malloc(sizeof(char) * 6);
+    strcpy(u1->name, "apple");
+    return u1;
+}
+
+typedef union usr2 {
+    int d;
+    vector vec;
+    int t;
+} usr2;
 
 /*
 int main() {
     printf("HI!\n");
 
-    usr u1;
-    u1.age = 12;
-    u1.value = 200;
+    usr2 t;
+    t.d = 5;
+    printf("t=%i\n", t.d);
+    t.t = -10;
+    printf("t=%i\n", t.d);
+    t.vec.size = 1045;
+    printf("t=%i\n", t.d);
 
-    vector v1;
-    vector_init(&v1, 10, sizeof(usr));
-    vector_pushback(&v1, &u1);
-    vector_pushback(&v1, &u1);
-
-    usr *f1 = vector_at(&v1, 1);
-    printf("FIND=%i\n", f1->age);
-    vector_dump(&v1);
-
-    hashmap map;
-    hashmap_init(&map, sizeof(vector));
-    hashmap_add(&map, "v1", &v1);
-
-
-    vector *g1 = (vector *) hashmap_get(&map, "v1");
-    printf("V1=%p V2=%p\n", &v1, g1);
-    vector_dump(g1);
-    //vector_dstr(g1);
-    //hashmap_clear(&map);
-    hashmap_dstr(&map);
-    vector_dstr(&v1);
     return 0;
-}
-*/
+}*/

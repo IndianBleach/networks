@@ -1,5 +1,6 @@
 #include "../include/http/parser.h"
 
+#include "../include/core/core.h"
 #include "../include/core/coredef.h"
 #include "../include/http/httpinfo.h"
 #include "../include/http/request.h"
@@ -133,67 +134,74 @@ int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
 
     int cur = ctx->cursor;
     int end = ctx->end;
-    int size = 0;
+    //int size = 0;
     char *begin = ctx->buff;
 
-    if (begin[cur] == '?') {
+    if (ctx_at(ctx, ctx->cursor) == '?') {
         cur++;
+        ctx_move(ctx, 1);
     }
 
     int tag_len = 0;
     int val_len = 0;
 
+    printf("parsing=%s\n", ctx->buff);
+
+    // parsing
     void *iter_begin = __out_vec_qparams->iterator.begin;
 
+    // create hashmap
+    hashmap map;
+    hashmap_init(&map, sizeof(queryparam *));
+
     while (cur < end) {
-        if ((tag_len = get_tag(ctx)) > 0) {
-            // tag is open
-
-            char *tag_name = cstr_new(tag_len, ctx->buff);
-
+        if ((tag_len = get_tag(ctx, '=')) > 0) {
+            char *tag_name = cstr_new(tag_len, &ctx->buff[ctx->cursor]);
             ctx_move(ctx, tag_len + 1); // +1 for :
-            printf("CUR_TAG=%c tagname=%s\n", begin[cur], tag_name);
-
+            cur += tag_len;
 
             if ((val_len = get_querytag_value(ctx)) > 0) {
-                // create single value tag
-                queryparam *qp = queryparam_new(QUERY_VALUE, val_len, &ctx->buff[ctx->cursor]);
-                qp->tag_name = tag_name;
-                qp->value.value = cstr_new(val_len, &ctx->buff[ctx->cursor]);
+                char *tag_value = cstr_new(val_len, &ctx->buff[ctx->cursor]);
 
-                // check exists this tag in list
+                // check if TAG EXISTS
+                // get the value, add new node. (its LIST_VALUE - ARRAY)
+                queryparam **find = (queryparam **) hashmap_get(&map, tag_name);
 
-                /*
-                int ex_index;
-                if ((ex_index = find_str((char **) vector_begin(&__out_vec_qparams),
-                                         (char **) vector_end(&__out_vec_qparams), __out_vec_qparams->size, tag_name)) >
-                    0) {
-                    printf("FINDED TAG=%s\n", tag_name);
-                    break;
+                if (find != NULL) {
+                    queryparam *elem = *find;
+                    if (elem->type == QUERY_VALUE) {
+                        // switch from SINGLE_VALUE to LIST_VALUE, copy old SINGLE_VALUE to list.
+                        queryparam_switch_on_list(elem, QUERY_VALUE_LIST);
+                        // add new value
+                        vector_pushback(&elem->value.vec, &(tag_value));
+                        vector_dump(&elem->value.vec);
+                    } else {
+                        // add value to existing list;
+                        vector_pushback(&elem->value.vec, &(tag_value));
+                    }
                 } else {
-                    printf("NEW TAG=%s\n", tag_name);
+                    // add to vector
+                    // add to map
+                    printf("node.single: [%s]=%s\n", tag_name, tag_value);
+                    queryparam *qp = malloc(sizeof(queryparam));
+                    queryparam_init(qp, QUERY_VALUE, tag_name, tag_value);
+
+                    hashmap_add(&map, tag_name, &(qp)); // REF ON BUFFER
+
+                    vector_pushback(__out_vec_qparams, &(qp)); // add ref on query_param
                 }
-                */
 
-                //find_str(begin)
 
-                /*
-                    if exists in vector -> returned index
-                    item = vector_at(index);
-
-                        item.type = value_list
-                        item.value.next = new()
-                        item.value = item.value.next
-
-                    else
-                    push_back   new()
-
-                */
+                cur += val_len;
+                ctx_move(ctx, val_len); // +1 for delimiter
             }
         }
 
-        break;
+        ctx_move(ctx, 1);
+        cur++;
     }
+
+    hashmap_dstr(&map);
 
     return 1;
 }
@@ -241,7 +249,7 @@ void parse(httprequest_buff *buff) {
                 tail = tail->next;
                 ctx_move(&ctx, local_len);
                 token_dump(tail);
-            } else if ((local_len = get_tag(&ctx)) > 0) {
+            } else if ((local_len = get_tag(&ctx, ':')) > 0) {
                 printf("get_tag=%i curs=%i\n", local_len, ctx.cursor);
                 tail->next = token_new_at(header_tag, &ctx.buff[ctx.cursor], local_len);
                 tail = tail->next;
@@ -512,6 +520,7 @@ int get_querytag_value(parse_context *ctx) {
             break;
         } else {
             size++;
+            cur++;
         }
     }
 
@@ -681,14 +690,14 @@ int getm_path(parse_context *ctx) {
 
 // return word length
 // con: -> 3
-int get_tag(parse_context *ctx) {
+int get_tag(parse_context *ctx, char delimiter) {
     int word_len = 0;
     word_len = get_word(ctx);
     if (word_len < 0)
         return -1;
 
     char next = ctx_at(ctx, ctx->cursor + word_len);
-    if (next == ':') {
+    if (next == delimiter) {
         return word_len;
     } else {
         return -1;

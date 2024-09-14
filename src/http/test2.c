@@ -103,34 +103,28 @@ int usr_comp(usr *a, char *name) {
 int main() {
     printf("test2.start\n");
 
-    char *t = "?user=john&age=21";
+
+    char *t = "user=john&age=21&age=23&age=44&age=232";
 
     parse_context ctx;
     ctx.buff = t;
     ctx.cursor = 0;
     ctx.end = strlen(t);
 
-    //vector extract_queryparams(&ctx, )
+    vector qparams;
+    vector_init(&qparams, 16, sizeof(queryparam *));
 
-    /*
-    parse_context ctx;
-    ctx.buff = t;
-    ctx.cursor = 0;
-    ctx.end = strlen(t);
+    int res = extract_queryparams(&ctx, &qparams);
 
-    int t1 = get_ipaddr(&ctx);
+    printf("FREE\n");
 
-    printf("RES=%i\n", t1);
-    return 0;
+    queryparam *prm1 = *(queryparam **) vector_at(&qparams, 0);
+    queryparam *prm = *(queryparam **) vector_at(&qparams, 1);
+    free(prm1->tag_name);
+    free(prm1->value.value);
 
-    httpreq_buff *reqbuff = reqbuff_new(1024);
+    free(prm->tag_name);
+    vector_dstr(&prm->value.vec);
 
-    reqbuff_copy(t, reqbuff);
-
-
-    parse(reqbuff);
-
-    reqbuff_dstr(reqbuff);
-
-    */
+    vector_dstr(&qparams);
 }

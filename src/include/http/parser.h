@@ -74,7 +74,7 @@ int get_number(parse_context *ctx);
 int get_version(parse_context *ctx);
 int get_ipaddr(parse_context *ctx);
 int getm_path(parse_context *ctx);
-int get_tag(parse_context *ctx);
+int get_tag(parse_context *ctx, char delimiter);
 int get_querytag_value(parse_context *ctx);
 
 // PRE-PARSING

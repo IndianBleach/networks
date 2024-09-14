@@ -56,11 +56,7 @@ typedef enum queryparam_value_type {
 } queryparam_value_type;
 
 typedef union queryparam_value {
-    struct {
-        char *value;
-        union queryparam_value *next;
-    } list;
-
+    vector vec;
     char *value;
 } queryparam_value;
 
@@ -70,9 +66,10 @@ typedef struct queryparam {
     char *tag_name;
 } queryparam;
 
-queryparam *queryparam_new(queryparam_value_type type, int value_size, int tag_name_size);
-char *queryparam_get_value(queryparam *qp);
-void queryparam_init(queryparam *param, queryparam_value_type type, int value_size, int tag_name_size);
+//queryparam *queryparam_new(queryparam_value_type type, int value_size, int tag_name_size);
+//char *queryparam_get_value(queryparam *qp);
+void queryparam_init(queryparam *param, queryparam_value_type type, char *tag_name, char *tag_value);
+void queryparam_switch_on_list(queryparam *param, queryparam_value_type type);
 
 /////////// REQUEST
 typedef struct httprequest {
