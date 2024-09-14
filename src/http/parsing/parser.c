@@ -168,6 +168,9 @@ int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
                 queryparam **find = (queryparam **) hashmap_get(&map, tag_name);
 
                 if (find != NULL) {
+                    // free temp values
+                    free(tag_name);
+
                     queryparam *elem = *find;
                     if (elem->type == QUERY_VALUE) {
                         // switch from SINGLE_VALUE to LIST_VALUE, copy old SINGLE_VALUE to list.
@@ -187,6 +190,7 @@ int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
                     queryparam_init(qp, QUERY_VALUE, tag_name, tag_value);
 
                     hashmap_add(&map, tag_name, &(qp)); // REF ON BUFFER
+
 
                     vector_pushback(__out_vec_qparams, &(qp)); // add ref on query_param
                 }

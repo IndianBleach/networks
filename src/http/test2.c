@@ -122,9 +122,17 @@ int main() {
     queryparam *prm = *(queryparam **) vector_at(&qparams, 1);
     free(prm1->tag_name);
     free(prm1->value.value);
+    free(prm1);
+
+    for (size_t i = 0; i < prm->value.vec.size; i++) {
+        queryparam_value *elem = vector_at(&prm->value.vec, i);
+        printf("destr=%s\n", elem->value);
+        free(elem->value);
+    }
 
     free(prm->tag_name);
     vector_dstr(&prm->value.vec);
+    free(prm);
 
     vector_dstr(&qparams);
 }

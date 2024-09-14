@@ -468,6 +468,7 @@ void hashmap_dstr(hashmap *map) {
 
     for (size_t i = 0; i < map->iterator.len; i++) {
         if (buff[i].flags != 0 && buff[i].key != NULL) {
+            printf("__hashmap_dstr[%s]\n", buff[i].key);
             free(buff[i].value);
             free(buff[i].key);
         }
