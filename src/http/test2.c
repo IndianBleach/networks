@@ -110,9 +110,9 @@ int main() {
     ctx.cursor = 0;
     ctx.end = strlen(t);
 
-    vector extract_queryparams(&ctx, )
+    //vector extract_queryparams(&ctx, )
 
-        /*
+    /*
     parse_context ctx;
     ctx.buff = t;
     ctx.cursor = 0;
@@ -133,5 +133,4 @@ int main() {
     reqbuff_dstr(reqbuff);
 
     */
-        printf("test2.end\n");
 }

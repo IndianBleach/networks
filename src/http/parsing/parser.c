@@ -143,7 +143,7 @@ int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
     int tag_len = 0;
     int val_len = 0;
 
-    void *iter_begin = vector_begin(__out_vec_qparams);
+    void *iter_begin = __out_vec_qparams->iterator.begin;
 
     while (cur < end) {
         if ((tag_len = get_tag(ctx)) > 0) {

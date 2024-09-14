@@ -192,20 +192,6 @@ void vector_dump(vector *vec) {
 
 #pragma region HashSet
 
-#define FNV_OFFSET 14695981039346656037UL
-#define FNV_PRIME 1099511628211UL
-
-#define HASHSET_INIT_CAP 4
-
-typedef struct hashset_entry {
-    char *key;
-} hashset_entry;
-
-typedef struct hashset {
-    basic_iterator iterator;
-    size_t size;
-} hashset;
-
 unsigned int hash_key(const char *key) {
     unsigned int hash = FNV_OFFSET;
     for (const char *p = key; *p; p++) {
@@ -345,20 +331,6 @@ void hashset_dump(hashset *set) {
 #pragma endregion
 
 #pragma region Hashmap
-
-#define HASHMAP_INIT_CAP 4
-
-typedef struct hashmap_entry {
-    void *value;
-    const char *key;
-    int flags;
-} hashmap_entry;
-
-typedef struct hashmap {
-    basic_iterator iterator;
-    size_t size;
-    size_t type_sz;
-} hashmap;
 
 void hashmap_init(hashmap *map, int type_sz) {
     void *buff = calloc(sizeof(hashmap_entry), HASHMAP_INIT_CAP);
@@ -508,6 +480,7 @@ typedef struct usr {
     int value;
 } usr;
 
+/*
 int main() {
     printf("HI!\n");
 
@@ -538,3 +511,4 @@ int main() {
     vector_dstr(&v1);
     return 0;
 }
+*/

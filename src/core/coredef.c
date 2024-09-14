@@ -20,7 +20,7 @@ char *cstr_new(int len, char *buff) {
 // FIND
 int find_str(void **beginptr, void **endptr, int len, char *target, int (*compr)(void *, char *)) {
     for (int i = 0; i < len; i++) {
-        void *ref = *(beginptr[i]);
+        void *ref = (beginptr[i]);
         printf("p=%p\n", ref);
     }
 

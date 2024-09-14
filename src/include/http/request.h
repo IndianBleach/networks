@@ -1,7 +1,7 @@
 #ifndef _HTTP_REQUEST_
 #define _HTTP_REQUEST_
 
-#include "../include/core/vector.h"
+#include "../include/core/core.h"
 #include "../include/http/httpinfo.h"
 
 // REQUEST BUFFER
