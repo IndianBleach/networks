@@ -182,6 +182,12 @@ void vector_reserve(vector *vec, size_t count) {
     }
 }
 
+void vector_dump(vector *vec) {
+    for (size_t i = 0; i < vec->size; i++) {
+        printf("vec[%i]: %p\n", i, vector_at(vec, i));
+    }
+}
+
 #pragma endregion
 
 #pragma region HashSet
@@ -380,15 +386,12 @@ void hashmap_add(hashmap *map, const char *__key, void *__value_buff) {
             }
         }
 
-        //if (buff[index])
         buff[index].key = cstrdup(__key);
-
-        printf("map.add: index=%i buff=%p key=%s\n", index, buff, buff[index].key);
 
         // alloc new memorey for value
         // memcpy to the buffer
         buff[index].value = malloc(map->type_sz);
-        memcpy(buff[index].value, __value_buff, sizeof(void *));
+        memcpy(buff[index].value, __value_buff, map->type_sz);
         buff[index].flags = 1;
         map->size++;
 
@@ -490,7 +493,6 @@ void hashmap_dstr(hashmap *map) {
 
     for (size_t i = 0; i < map->iterator.len; i++) {
         if (buff[i].flags != 0 && buff[i].key != NULL) {
-            printf("cur=%p\n", buff[i].value);
             free(buff[i].value);
             free(buff[i].key);
         }
@@ -498,13 +500,6 @@ void hashmap_dstr(hashmap *map) {
 
     free(map->iterator.begin);
 }
-
-// get
-// add
-// has
-// ensure_cap
-// free
-// clear
 
 #pragma endregion
 
@@ -520,25 +515,26 @@ int main() {
     u1.age = 12;
     u1.value = 200;
 
+    vector v1;
+    vector_init(&v1, 10, sizeof(usr));
+    vector_pushback(&v1, &u1);
+    vector_pushback(&v1, &u1);
+
+    usr *f1 = vector_at(&v1, 1);
+    printf("FIND=%i\n", f1->age);
+    vector_dump(&v1);
+
     hashmap map;
-    hashmap_init(&map, sizeof(usr));
-    hashmap_add(&map, "user1", &u1);
-    hashmap_add(&map, "user2", &u1);
-    hashmap_add(&map, "user3", &u1);
-    hashmap_add(&map, "user4", &u1);
+    hashmap_init(&map, sizeof(vector));
+    hashmap_add(&map, "v1", &v1);
 
-    hashmap_clear(&map);
-    //hashmap_dstr(&map);
-    hashmap_add(&map, "user1", &u1);
-    hashmap_add(&map, "user2", &u1);
-    hashmap_add(&map, "user3", &u1);
-    hashmap_add(&map, "user4", &u1);
 
-    int i1 = hashmap_get_index(&map, "user4");
-    int i2 = hashmap_get_index(&map, "user3");
-    printf("res=%i %i\n", i1, i2);
-
-    hashmap_clear(&map);
+    vector *g1 = (vector *) hashmap_get(&map, "v1");
+    printf("V1=%p V2=%p\n", &v1, g1);
+    vector_dump(g1);
+    //vector_dstr(g1);
+    //hashmap_clear(&map);
     hashmap_dstr(&map);
+    vector_dstr(&v1);
     return 0;
 }
