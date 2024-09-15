@@ -100,39 +100,62 @@ int usr_comp(usr *a, char *name) {
         return -1;
 }
 
+/*
+GET /favicon.ico HTTP/1.1
+Host: 127.0.0.1:8013
+Connection: keep-alive
+sec-ch-ua: "Not/A)Brand";v="8", "Chromium";v="126", "YaBrowser";v="24.7", "Yowser";v="2.5"
+sec-ch-ua-mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 YaBrowser/24.7.0.0 Safari/537.36
+sec-ch-ua-platform: "Windows"
+Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,_/*;q=0.8
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: image
+Referer: https://127.0.0.1:8013/
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: ru,en;q=0.9
+*/
+
+
 int main() {
     printf("test2.start\n");
 
 
-    char *t = "user=john&age=21&age=23&age=44&age=232";
+    char *t = "Accept-Encoding: gzip, deflate; br, zstd";
+
+    httprequest_buff buff;
+    buff.ptr = t;
+    buff.capacity = 1024;
 
     parse_context ctx;
     ctx.buff = t;
     ctx.cursor = 0;
     ctx.end = strlen(t);
 
-    vector qparams;
+    parse(&buff);
+
+
+    /*
+        vector qparams;
     vector_init(&qparams, 16, sizeof(queryparam *));
 
+    // clean query params
     int res = extract_queryparams(&ctx, &qparams);
-
     printf("FREE\n");
-
     queryparam *prm1 = *(queryparam **) vector_at(&qparams, 0);
     queryparam *prm = *(queryparam **) vector_at(&qparams, 1);
     free(prm1->tag_name);
     free(prm1->value.value);
     free(prm1);
-
     for (size_t i = 0; i < prm->value.vec.size; i++) {
         queryparam_value *elem = vector_at(&prm->value.vec, i);
         printf("destr=%s\n", elem->value);
         free(elem->value);
     }
-
     free(prm->tag_name);
     vector_dstr(&prm->value.vec);
     free(prm);
-
     vector_dstr(&qparams);
+    */
 }

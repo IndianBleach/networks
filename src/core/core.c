@@ -485,32 +485,178 @@ typedef struct usr {
     char *name;
 } usr;
 
-usr *user_new() {
+usr *user_new(const char *name, int age) {
     usr *u1 = malloc(sizeof(usr));
-    u1->age = 12;
-    u1->value = 200;
+    u1->age = age;
+    u1->value = 0;
     u1->name = (char *) malloc(sizeof(char) * 6);
-    strcpy(u1->name, "apple");
+    strcpy(u1->name, name);
     return u1;
 }
 
-typedef union usr2 {
-    int d;
-    vector vec;
-    int t;
-} usr2;
+int vec_find(vector *vec, const char *name, int (*compr)(const char *a, void *b)) {
+    for (size_t i = 0; i < vec->size; i++) {
+        usr **elem = (usr **) vector_at(vec, i);
+        if (elem != NULL) {
+            if (compr(name, *elem) == 0) {
+                return i;
+            }
+        }
+    }
 
+    return -1;
+}
+
+int compr_usr(const char *name, void *up) {
+    usr *u = (usr *) up;
+    if (strcmp(name, u->name) == 0)
+        return 0;
+    else
+        return -1;
+}
+
+typedef int (*compr_base)(const char *a, void *b);
+
+typedef struct tree_node {
+    void *value;
+    vector *child_nodes;
+} tree_node;
+
+typedef struct tree {
+    int value_size;
+    tree_node *head;
+} tree;
+
+// vector
+typedef int (*basic_comparator)(void *a, void *b);
+#define __basic_comparator int (*compare)(void *a, void *b)
+
+int trnode_compr_ptr(void *trnode_a, void *trnode_b) {
+    tree_node *a = (tree_node *) trnode_a;
+    tree_node *b = (tree_node *) trnode_b;
+
+    if (a == NULL || b == NULL)
+        return -1;
+
+    if (a->value == b->value) {
+        return 0;
+    }
+}
+
+#define __trnode_compr_default trnode_compr_ptr
+
+int vector_find(vector *vec, void *elem, __basic_comparator) {
+    for (size_t i = 0; i < vec->size; i++) {
+        if (compare(elem, vector_at(vec, i)) == 0)
+            return i;
+    }
+
+    return -1;
+}
+
+// nodes
+void trnode_init(tree *tr, tree_node *node, void *__value_buff) {
+    vector_init(node->child_nodes, 10, sizeof(tree_node *));
+    if (__value_buff != NULL) {
+        memcpy(node->value, __value_buff, tr->value_size);
+    }
+}
+
+tree_node *trnode_new(tree *tr, void *__value_buff) {
+    tree_node *node = (tree_node *) malloc(sizeof(tree_node));
+    trnode_init(tr, node, __value_buff);
+}
+
+void trnode_dstr(tree_node *node) { free(node->value); }
+
+void tree_init(tree *tree, size_t __valsize) {
+    tree->value_size = __valsize;
+    tree->head = (tree_node *) trnode_new(tree, NULL);
+}
+
+void tree_dump(tree *tr) {
+    tree_node *head = tr->head;
+    while (head != NULL) {
+        if (head->child_nodes->size > 0) {
+            //head
+        }
+    }
+}
+
+// void trnode_dstr_deep()
 /*
+TREE
+    clear(tree)
+    dstr(tree)
+    new(headsz)
+    init(tree, headsz)
+    
+    clear_from(node)
+    bfs(tree, val_comparator)
+    dfs(tree, val_comparator)
+
+    // vec_comparator
+
+TREE_NODE
+    void* value
+    vector<TREE_NODE> childrens
+*/
+
+// size
+// tree_node
+// compr(node* node, void* node_value)
+// dfs(node* root, compr*)
+// bfs(node* root, compr*)
+
+int compr_ptr(void *ptra, void *ptrb) { return ptra == ptrb; }
+
+int compr_dptr(void *dptr_a, void *dptr_b) {
+    void *a = *(void **) dptr_a;
+    void *b = *(void **) dptr_b;
+    printf("A=%p B=%p\n", a, b);
+    if (a == b) {
+        return 0;
+    }
+
+    return -1;
+}
+
+int compr_usr_dptr(void *dptr_usra, void *dptr_usrb) {
+    usr **t1 = (usr **) dptr_usra;
+    usr **t2 = (usr **) dptr_usrb;
+    if (t1 == NULL || t2 == NULL) {
+        printf("compr_usr_dptr> bad cast. (dptr)\n");
+        return -1;
+    }
+
+    if ((*t1)->value == (*t2)->value)
+        return 0;
+
+    return -1;
+}
+
 int main() {
     printf("HI!\n");
 
-    usr2 t;
-    t.d = 5;
-    printf("t=%i\n", t.d);
-    t.t = -10;
-    printf("t=%i\n", t.d);
-    t.vec.size = 1045;
-    printf("t=%i\n", t.d);
+
+    vector v1;
+    vector_init(&v1, 10, sizeof(usr *));
+
+    usr *u1 = user_new("John", 32);
+    usr *u2 = user_new("Valed", 22);
+    usr *u3 = user_new("Katya", 62);
+    usr *u4 = user_new("Ksenz", 22);
+
+    vector_pushback(&v1, &(u1));
+    vector_pushback(&v1, &(u2));
+    vector_pushback(&v1, &(u3));
+    vector_pushback(&v1, &(u4));
+
+    compr_base *c = &compr_usr;
+
+    int index = vector_find(&v1, &(u3), compr_dptr);
+
+    printf("INDEX=%i\n", index);
 
     return 0;
-}*/
+}

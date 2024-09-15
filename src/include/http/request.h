@@ -17,10 +17,10 @@ void requestbuff_init(httprequest_buff *buff, unsigned int capacity);
 
 /////////// HEADER
 typedef enum header_value_type {
-    VALUE,
-    LIST_VALUE,
-    LIST_VALUE_DEEP,
-    TAG_VALUE,
+    HEADER_SINGLE_VALUE,
+    HEADER_LIST_VALUES,
+    HEADER_LIST_IN_LIST,
+    HEADER_TAG_VALUE,
 } header_value_type;
 
 typedef union header_value {
@@ -34,12 +34,7 @@ typedef union header_value {
     // pepresenting list like: accept: 'eg, gz, er;  v=0.9'
     //                                  __value__,  __next__
     //                                 ..next->next.
-    struct {
-        size_t count;
-        union header_value *value;
-        union header_value *next;
-    } list;
-
+    vector *list;
 
 } header_value;
 
@@ -48,6 +43,8 @@ typedef struct httpheader {
     header_value value;
     const char *name;
 } httpheader;
+
+httpheader *httpheader_new(header_value_type __base_type);
 
 /////////// QUERY
 typedef enum queryparam_value_type {

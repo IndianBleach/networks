@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 
+#include "../include/core/core.h"
 #include "../include/sockets/epoll.h"
 #include "../include/sockets/epollfd.h"
 #include "../include/sockets/ntconfig.h"
@@ -18,7 +19,7 @@
 #define SCALE_SOCK_LISTENER_MAX_CON 1000
 #define SCALE_LS_PER_NODE 2
 #define ADDR_NODE_IP "127.0.0.1"
-#define ADDR_NODE_PORT "8011"
+#define ADDR_NODE_PORT "8013"
 
 void ntconfig_copy(ntnode_config *src, ntnode_config *dest) {
     dest->addr = src->addr;

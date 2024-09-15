@@ -122,4 +122,37 @@ void hashmap_clear(hashmap *map);
 void hashmap_dump(hashmap *map);
 void hashmap_ensure_capacity(hashmap *map, size_t new_cap);
 
+
+// ::::::: DS
+
+// tree
+/*
+
+sorted_map
+sorted_set
+sorted_tree
+
+TREE
+    clear(tree)
+    dstr(tree)
+    new(headsz)
+    init(tree, headsz)
+    
+    clear_from(node)
+    bfs(tree, val_comparator)
+    dfs(tree, val_comparator)
+
+    // vec_comparator
+
+TREE_NODE
+    void* value
+    vector<TREE_NODE> childrens
+*/
+
+// size
+// tree_node
+// compr(node* node, void* node_value)
+// dfs(node* root, compr*)
+// bfs(node* root, compr*)
+
 #endif

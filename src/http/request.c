@@ -30,7 +30,7 @@ void requestbuff_copy(const char *source, httprequest_buff *dest) {
 
 void requestbuff_init(httprequest_buff *buff, unsigned int capacity) {
     buff->capacity = capacity;
-    buff->ptr = (char *) malloc(sizeof(char) * capacity);
+    buff->ptr = (char *) malloc(sizeof(char) * (capacity + 1));
 }
 
 void queryparam_init(queryparam *param, queryparam_value_type type, char *tag_name, char *tag_value) {
@@ -59,4 +59,12 @@ void queryparam_switch_on_list(queryparam *param, queryparam_value_type type) {
         vector_pushback(&param->value.vec, &(old));
         //param->value.value = NULL; // set old value NULL;
     }
+}
+
+// :: Headers
+httpheader *httpheader_new(header_value_type __base_type) {
+    httpheader *p = (httpheader *) malloc(sizeof(httpheader));
+    p->type = __base_type;
+    p->name = NULL;
+    return p;
 }

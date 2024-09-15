@@ -5,6 +5,7 @@
 #include "../include/http/httpinfo.h"
 #include "../include/http/request.h"
 
+#include <ctype.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +35,43 @@ void token_dump(httpreq_token *tk) {
     printf("---token_dump:");
     printf("val=%s type=%i\n", tk->value, tk->type);
 }
+
+// UTILS
+header_value_type get_tag_valuetype(parse_context *ctx) {
+    int cur = ctx->cursor;
+    int end = ctx->end;
+    char *begin = ctx->buff;
+
+    int list_deep_level = 0;
+    while (cur < end) {
+        //printf("CUR=%i P=%c\n", cur, begin[cur]);
+        if (begin[cur] == '\n') // tag value line end
+            break;
+        if (begin[cur] == ':') // next tag
+            break;
+
+        if (begin[cur] == ',') {
+            list_deep_level = 1;
+        } else if (begin[cur] == ';') {
+            list_deep_level = 2;
+            break;
+        }
+        cur++;
+    }
+
+    switch (list_deep_level) {
+        case 0:
+            return HEADER_SINGLE_VALUE;
+        case 1:
+            return HEADER_LIST_VALUES;
+        case 2:
+            return HEADER_LIST_IN_LIST;
+        default:
+            break;
+    }
+
+    return HEADER_SINGLE_VALUE;
+};
 
 // EXTRACT DATA
 httpmethod extract_method(parse_context *ctx) {
@@ -218,29 +256,40 @@ void parse(httprequest_buff *buff) {
     ctx.cursor = 0;
     ctx.end = strlen(buff->ptr);
 
+    printf("PARSING: %s\n", buff->ptr);
+
     printf("parse: cursr=%i end=%i\n", ctx.cursor, ctx.end);
+
+    // from tag_BEGIN to NEXT tag.
+    // tag: list/list_in_list/single
+    //
 
     httpreq_token *head = token_new(NULL, _parse_begin);
     httpreq_token *tail = head;
 
-    // enum stack
-    bool enum_open = false;
+    // fix?
+    bool value_open = false;
+    header_value_type value_type = -1;
+    bool tag_open = false;
+
 
     while (ctx.cursor < ctx.end) {
         // parsing deep enums by priority
-        int enum_deep = -1;
-        int enum_level = 0;
-        while ((enum_deep = is_enum_value(&ctx, enum_deep)) > 0) {
-            tail->next = token_new_at(enum_value_begin, &ctx.buff[enum_deep], 1);
-            tail = tail->next;
-            token_dump(tail);
-            enum_level++;
+        int base_len;
+        if ((base_len = get_tag(&ctx, ':')) > 0) {
+            printf("BASE_LEN:%i\n", base_len);
+            ctx_move(&ctx, base_len + 1);
+            tag_open = true;
+            value_type = get_tag_valuetype(&ctx);
+            value_open = true;
+            printf("VAL_TYPE:%i\n", value_type);
+
+            // CREATE VALUE STRUCT (of type)
+        } else {
+            printf("skip=%c\n", ctx.buff[ctx.cursor]);
         }
 
-        int base_len;
-
-
-        printf("cur=%c\n", ctx.buff[ctx.cursor]);
+        //printf("cur=%c\n", ctx.buff[ctx.cursor]);
 
         if ((base_len = get_word(&ctx)) > 0) {
             // variants
@@ -248,19 +297,25 @@ void parse(httprequest_buff *buff) {
 
             // getPath
             if ((local_len = getm_path(&ctx)) > 0) {
-                printf("get_path=%i curs=%i\n", local_len, ctx.cursor);
+                //printf("get_path=%i curs=%i\n", local_len, ctx.cursor);
                 tail->next = token_new_at(word_path, &ctx.buff[ctx.cursor], local_len);
                 tail = tail->next;
                 ctx_move(&ctx, local_len);
                 token_dump(tail);
+
             } else if ((local_len = get_tag(&ctx, ':')) > 0) {
+                // break current iteration. top level parsing tag.
+                continue;
+                /*
                 printf("get_tag=%i curs=%i\n", local_len, ctx.cursor);
                 tail->next = token_new_at(header_tag, &ctx.buff[ctx.cursor], local_len);
                 tail = tail->next;
                 ctx_move(&ctx, local_len);
                 token_dump(tail);
+                */
+
             } else {
-                printf("get_word=%i curs=%i\n", local_len, ctx.cursor);
+                //printf("get_word=%i curs=%i\n", local_len, ctx.cursor);
                 tail->next = token_new_at(word, &ctx.buff[ctx.cursor], base_len);
                 tail = tail->next;
                 ctx_move(&ctx, base_len);
@@ -271,7 +326,7 @@ void parse(httprequest_buff *buff) {
         } else if ((base_len = get_string(&ctx)) > 0) {
             // variants
 
-            printf("get_string=%i\n", base_len);
+            //printf("get_string=%i\n", base_len);
             tail->next = token_new_at(string, &ctx.buff[ctx.cursor], base_len);
             tail = tail->next;
             ctx_move(&ctx, base_len);
@@ -279,13 +334,13 @@ void parse(httprequest_buff *buff) {
         } else if ((base_len = get_number(&ctx)) > 0) {
             int local;
             if ((local = get_ipaddr(&ctx)) > 0) {
-                printf("get_number.get_ipaddr=%i\n", local);
+                //printf("get_number.get_ipaddr=%i\n", local);
                 tail->next = token_new_at(ipaddr, &ctx.buff[ctx.cursor], local);
                 tail = tail->next;
                 ctx_move(&ctx, local);
                 token_dump(tail);
             } else if ((local = get_version(&ctx)) > 0) {
-                printf("get_number.get_version=%i\n", local);
+                //printf("get_number.get_version=%i\n", local);
                 tail->next = token_new_at(version, &ctx.buff[ctx.cursor], local);
                 tail = tail->next;
                 ctx_move(&ctx, local);
@@ -293,9 +348,9 @@ void parse(httprequest_buff *buff) {
             } else {
                 int floated;
                 if ((floated = is_float(&ctx, base_len)) > 0) {
-                    printf("get_number.floated=%i\n", base_len);
+                    //printf("get_number.floated=%i\n", base_len);
                 } else {
-                    printf("get_number.int=%i\n", base_len);
+                    //printf("get_number.int=%i\n", base_len);
                 }
 
                 tail->next = token_new_at(number, &ctx.buff[ctx.cursor], base_len);
@@ -307,17 +362,22 @@ void parse(httprequest_buff *buff) {
 
         // symbol parsing
         if (ctx.buff[ctx.cursor] == ',') {
+            /*
             if (enum_level >= 1) {
                 tail->next = token_new(NULL, enum_delim_comma);
                 tail = tail->next;
                 ctx_move(&ctx, 1);
             }
+            */
+            // FIRST LIST
         } else if (ctx.buff[ctx.cursor] == ';') {
+            /*
             if (enum_level >= 1) {
                 tail->next = token_new(NULL, enum_delim_semicolon);
                 tail = tail->next;
                 ctx_move(&ctx, 1);
             }
+            */
         }
 
         // longWord
@@ -430,8 +490,8 @@ int get_word(parse_context *ctx) {
     int size = 0;
     while (i < ctx->end) {
         char p = ctx->buff[i];
-        //printf("it=%c i=%i size=%i \n ", p, i, size);
-        if (p >= 'a' && p <= 'z') {
+        printf("it=%c i=%i size=%i \n ", p, i, size);
+        if (isalpha(p)) {
             size++;
         } else if (p >= '0' && p <= '9') {
             if (size == 0)
@@ -699,6 +759,8 @@ int get_tag(parse_context *ctx, char delimiter) {
     word_len = get_word(ctx);
     if (word_len < 0)
         return -1;
+
+    printf("WORD=%i\n", word_len);
 
     char next = ctx_at(ctx, ctx->cursor + word_len);
     if (next == delimiter) {

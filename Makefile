@@ -31,9 +31,6 @@ TEST_SRC = $(shell find $(TEST_DIR_SRC) -name *.c)
 core.core2:
 	$(GCC) $(FLAGS) ./src/core/core.c -o $(BUILD_OBJ)
 
-core.vector:
-	$(GCC) $(FLAGS) ./src/core/vector.c -o $(BUILD_OBJ)
-
 server.test:
 	$(GCC) $(FLAGS) $(TEST_SRC) $(TEST_HEADERS) -o $(BUILD_OBJ)
 
