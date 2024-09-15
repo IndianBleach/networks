@@ -527,6 +527,20 @@ typedef struct tree {
     tree_node *head;
 } tree;
 
+// comparators
+int compr_ptr(void *ptra, void *ptrb) { return ptra == ptrb; }
+
+int compr_dptr(void *dptr_a, void *dptr_b) {
+    void *a = *(void **) dptr_a;
+    void *b = *(void **) dptr_b;
+    printf("A=%p B=%p\n", a, b);
+    if (a == b) {
+        return 0;
+    }
+
+    return -1;
+}
+
 // vector
 typedef int (*basic_comparator)(void *a, void *b);
 #define __basic_comparator int (*compare)(void *a, void *b)
@@ -578,10 +592,13 @@ void tree_dump(tree *tr) {
     tree_node *head = tr->head;
     while (head != NULL) {
         if (head->child_nodes->size > 0) {
-            //head
+            //head = head->child_nodes
         }
     }
 }
+
+// queue
+// stack
 
 // void trnode_dstr_deep()
 /*
@@ -608,18 +625,6 @@ TREE_NODE
 // dfs(node* root, compr*)
 // bfs(node* root, compr*)
 
-int compr_ptr(void *ptra, void *ptrb) { return ptra == ptrb; }
-
-int compr_dptr(void *dptr_a, void *dptr_b) {
-    void *a = *(void **) dptr_a;
-    void *b = *(void **) dptr_b;
-    printf("A=%p B=%p\n", a, b);
-    if (a == b) {
-        return 0;
-    }
-
-    return -1;
-}
 
 int compr_usr_dptr(void *dptr_usra, void *dptr_usrb) {
     usr **t1 = (usr **) dptr_usra;
@@ -635,28 +640,117 @@ int compr_usr_dptr(void *dptr_usra, void *dptr_usrb) {
     return -1;
 }
 
+typedef struct queue_entry {
+    void *value;
+    struct queue_entry *next;
+} queue_entry;
+
+typedef struct queue {
+    // [] [] []
+    // ll
+    queue_entry *_head;
+    queue_entry *_last;
+    size_t _size;
+    size_t _valsize;
+} queue;
+
+void queue_init(queue *q, size_t __valsize) {
+    q->_last = NULL;
+    q->_head = NULL;
+    q->_size = 0;
+    q->_valsize = __valsize;
+}
+
+void queue_push(queue *q, void *__valbuff) {
+    if (__valbuff == NULL)
+        return;
+
+    queue_entry *en = (queue_entry *) malloc(sizeof(queue_entry));
+    en->next = NULL;
+    void *vb = (void *) malloc(q->_valsize);
+    en->value = vb;
+    memcpy(en->value, __valbuff, q->_valsize);
+
+    if (q->_head != NULL) {
+        q->_last->next = en;
+        //printf("cur=%p\n", q->_last);
+        q->_last = en;
+        //printf("last, next=%p %p\n", q->_last, en);
+    } else {
+        q->_head = en;
+        q->_last = en;
+    }
+    q->_size++;
+}
+
+void *queue_pop(queue *q) {
+    if (q->_head == NULL) {
+        return NULL;
+    }
+
+    queue_entry *first = q->_head;
+    q->_head = q->_head->next;
+    q->_size--;
+
+    return first->value;
+}
+
+size_t queue_size(queue *q) { return q->_size; }
+
+void queue_clear(queue *q) {
+    if (q->_head == NULL)
+        return;
+
+    queue_entry *head = q->_head;
+    while (head != NULL) {
+        queue_entry *next = head->next;
+        printf("free: %p next=%p\n", head, next);
+        free(head->value);
+        free(head);
+        head = next;
+        q->_size--;
+    }
+}
+
+void *queue_front(queue *q) { return q->_head->value; }
+
+void *queue_back(queue *q) { return q->_last->value; }
+
+/*
+    Queue
+    -front()
+    -back()
+    -empty()
+    -push
+    -pop
+    -new()
+    -dstr()
+    -clear()
+*/
+
+
 int main() {
     printf("HI!\n");
 
+    int t1 = 5;
+    int t2 = 0;
+    int t3 = 99;
 
-    vector v1;
-    vector_init(&v1, 10, sizeof(usr *));
+    queue q;
+    queue_init(&q, sizeof(int));
+    queue_push(&q, &t1);
+    queue_push(&q, &t2);
+    queue_push(&q, &t3);
 
-    usr *u1 = user_new("John", 32);
-    usr *u2 = user_new("Valed", 22);
-    usr *u3 = user_new("Katya", 62);
-    usr *u4 = user_new("Ksenz", 22);
+    int first = *(int *) queue_front(&q);
+    int last = *(int *) queue_back(&q);
 
-    vector_pushback(&v1, &(u1));
-    vector_pushback(&v1, &(u2));
-    vector_pushback(&v1, &(u3));
-    vector_pushback(&v1, &(u4));
+    printf("f=%i l=%i\n", first, last);
 
-    compr_base *c = &compr_usr;
+    queue_clear(&q);
 
-    int index = vector_find(&v1, &(u3), compr_dptr);
-
-    printf("INDEX=%i\n", index);
+    //int r1 = *(int *) queue_pop(&q);
+    //printf("RES=%i\n", r1);
 
     return 0;
 }
