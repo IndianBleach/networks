@@ -8,6 +8,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+int __comparator_ptr(void *ptra, void *ptrb) { return ptra == ptrb; }
+
+int __comparator_dptr(void *dptra, void *dptrb) {
+    void *a = *(void **) dptra;
+    void *b = *(void **) dptrb;
+    //printf("A=%p B=%p\n", a, b);
+    if (a == b) {
+        return 0;
+    }
+
+    return -1;
+}
+
 // ::::::: Strings
 char *cstrdup(const char *str) {
     size_t len = strlen(str);
@@ -324,13 +337,6 @@ void hashset_dump(hashset *set) {
     }
 }
 
-// init
-// new
-// _ensure_cap
-// add(key)
-// delete(key)
-// contains(key)
-
 #pragma endregion
 
 #pragma region Hashmap
@@ -481,20 +487,6 @@ void hashmap_dstr(hashmap *map) {
 
 #pragma region Queue
 
-typedef struct queue_entry {
-    void *value;
-    struct queue_entry *next;
-} queue_entry;
-
-typedef struct queue {
-    // [] [] []
-    // ll
-    queue_entry *_head;
-    queue_entry *_last;
-    size_t _size;
-    size_t _valsize;
-} queue;
-
 void queue_init(queue *q, size_t __valsize) {
     q->_last = NULL;
     q->_head = NULL;
@@ -565,98 +557,7 @@ void *queue_back(queue *q) { return q->_last->value; }
 
 #pragma endregion
 
-typedef struct usr {
-    int age;
-    int value;
-    char *name;
-} usr;
-
-usr *user_new(const char *name, int age) {
-    usr *u1 = malloc(sizeof(usr));
-    u1->age = age;
-    u1->value = 0;
-    u1->name = (char *) malloc(sizeof(char) * 6);
-    strcpy(u1->name, name);
-    return u1;
-}
-
-int vec_find(vector *vec, const char *name, int (*compr)(const char *a, void *b)) {
-    for (size_t i = 0; i < vec->size; i++) {
-        usr **elem = (usr **) vector_at(vec, i);
-        if (elem != NULL) {
-            if (compr(name, *elem) == 0) {
-                return i;
-            }
-        }
-    }
-
-    return -1;
-}
-
-int compr_usr(const char *name, void *up) {
-    usr *u = (usr *) up;
-    if (strcmp(name, u->name) == 0)
-        return 0;
-    else
-        return -1;
-}
-
-typedef int (*compr_base)(const char *a, void *b);
-
-// comparators
-int compr_ptr(void *ptra, void *ptrb) { return ptra == ptrb; }
-
-int compr_dptr(void *dptr_a, void *dptr_b) {
-    void *a = *(void **) dptr_a;
-    void *b = *(void **) dptr_b;
-    printf("A=%p B=%p\n", a, b);
-    if (a == b) {
-        return 0;
-    }
-
-    return -1;
-}
-
-// vector
-typedef int (*basic_comparator)(void *a, void *b);
-#define __basic_comparator int (*compare)(void *a, void *b)
-/*
-int trnode_compr_ptr(void *trnode_a, void *trnode_b) {
-    tree_node *a = (tree_node *) trnode_a;
-    tree_node *b = (tree_node *) trnode_b;
-
-    if (a == NULL || b == NULL)
-        return -1;
-
-    if (a->value == b->value) {
-        return 0;
-    }
-
-    return -1;
-}
-*/
-
-#define __trnode_compr_default trnode_compr_ptr
-
-int vector_find(vector *vec, void *elem, __basic_comparator) {
-    for (size_t i = 0; i < vec->size; i++) {
-        if (compare(elem, vector_at(vec, i)) == 0)
-            return i;
-    }
-
-    return -1;
-}
-
-typedef struct tree_node {
-    void *value;
-    vector child_nodes;
-} tree_node;
-
-typedef struct tree {
-    int value_size;
-    int size;
-    tree_node *head;
-} tree;
+#pragma region Tree
 
 // nodes
 void trnode_init(tree *tr, tree_node *node, void *__value_buff) {
@@ -757,6 +658,119 @@ void tree_dstr(tree *tr) {
     queue_clear(&q);
 }
 
+#pragma endregion
+
+typedef struct usr {
+    int age;
+    int value;
+    char *name;
+} usr;
+
+usr *user_new(const char *name, int age) {
+    usr *u1 = malloc(sizeof(usr));
+    u1->age = age;
+    u1->value = 0;
+    u1->name = (char *) malloc(sizeof(char) * 6);
+    strcpy(u1->name, name);
+    return u1;
+}
+
+int vec_find(vector *vec, const char *name, int (*compr)(const char *a, void *b)) {
+    for (size_t i = 0; i < vec->size; i++) {
+        usr **elem = (usr **) vector_at(vec, i);
+        if (elem != NULL) {
+            if (compr(name, *elem) == 0) {
+                return i;
+            }
+        }
+    }
+
+    return -1;
+}
+
+int compr_usr(const char *name, void *up) {
+    usr *u = (usr *) up;
+    if (strcmp(name, u->name) == 0)
+        return 0;
+    else
+        return -1;
+}
+
+typedef int (*compr_base)(const char *a, void *b);
+
+// comparators
+
+/*
+int trnode_compr_ptr(void *trnode_a, void *trnode_b) {
+    tree_node *a = (tree_node *) trnode_a;
+    tree_node *b = (tree_node *) trnode_b;
+
+    if (a == NULL || b == NULL)
+        return -1;
+
+    if (a->value == b->value) {
+        return 0;
+    }
+
+    return -1;
+}
+*/
+
+#define __trnode_compr_default trnode_compr_ptr
+
+int vector_find(vector *vec, void *elem, __basic_comparator) {
+    for (size_t i = 0; i < vec->size; i++) {
+        if (compare(elem, vector_at(vec, i)) == 0)
+            return i;
+    }
+
+    return -1;
+}
+
+// queue -> add . par
+bool tree_bfs_contains(tree *tr, __basic_comparator, void *__value) {
+    queue q;
+    queue_init(&q, sizeof(tree_node *));
+    queue_push(&q, &(tr->head));
+
+    while (!queue_empty(&q)) {
+        tree_node **dptr = queue_pop(&q);
+        if (dptr != NULL) {
+            tree_node *node = *dptr;
+            printf("node=%p\n", node);
+
+            if (node->value != NULL) {
+                if (compare(node->value, (__value)) == 0) {
+                    return true;
+                }
+            }
+
+            for (size_t i = 0; i < node->child_nodes.size; i++) {
+                queue_push(&q, vector_at(&node->child_nodes, i));
+            }
+        }
+
+        free(dptr);
+    }
+
+    queue_clear(&q);
+
+    return false;
+}
+
+// bfs(t, compr)
+// dfs(t, compr)
+
+
+int compr_ptrval_int(void *dptra, void *dptrb) {
+    int *f1 = (int *) dptra;
+    int *f2 = (int *) dptrb;
+    if (*f1 == *f2)
+        return 0;
+
+    return -1;
+}
+
 int main() {
     printf("HI!\n");
 
@@ -764,16 +778,22 @@ int main() {
     int t2 = 0;
     int t3 = 99;
     int t4 = -20;
+    int t5 = -400;
 
     tree tr;
     tree_init(&tr, sizeof(int));
     tree_node *q1 = tree_add(&tr, tr.head, &t1);
     tree_node *q2 = tree_add(&tr, tr.head, &t2);
     tree_node *q3 = tree_add(&tr, tr.head, &t3);
-    tree_node *q4 = tree_add(&tr, tr.head, &t4);
+    tree_node *q4 = tree_add(&tr, tr.head, &t3);
+    tree_node *qq = tree_add(&tr, q4, &t4);
 
+    //tree_add(&tr, qq, &t5);
     tree_dump(&tr);
-    tree_dstr(&tr);
+    //tree_dstr(&tr);
+
+    bool res = tree_bfs_contains(&tr, compr_ptrval_int, &(t5));
+    printf("RES=%i\n", res);
 
     //int r1 = *(int *) queue_pop(&q);
     //printf("RES=%i\n", r1);
@@ -781,27 +801,6 @@ int main() {
     return 0;
 }
 
-// void trnode_dstr_deep()
-/*
-TREE
-    clear(tree)
-    dstr(tree)
-    new(headsz)
-    init(tree, headsz)
-    
-    clear_from(node)
-    bfs(tree, val_comparator)
-    dfs(tree, val_comparator)
-
-    // vec_comparator
-
-TREE_NODE
-    void* value
-    vector<TREE_NODE> childrens
-*/
-
-// size
-// tree_node
 // compr(node* node, void* node_value)
 // dfs(node* root, compr*)
 // bfs(node* root, compr*)

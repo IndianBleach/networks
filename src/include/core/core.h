@@ -9,6 +9,11 @@
 #include <string.h>
 #include <string.h> // Для strdup
 
+// ::::::: Comparators
+#define __basic_comparator int (*compare)(void *a, void *b)
+extern int __comparator_ptr(void *ptra, void *ptrb);
+extern int __comparator_dptr(void *ptra, void *ptrb);
+
 // ::::::: Logging
 void log(FILE *fd, const char *__msg, const char *__caller, const char *__file, const int __line);
 #define __log_err(msg) log(stderr, msg, __func__, __FILE__, __LINE__);
@@ -122,8 +127,48 @@ void hashmap_clear(hashmap *map);
 void hashmap_dump(hashmap *map);
 void hashmap_ensure_capacity(hashmap *map, size_t new_cap);
 
+// ::::::: DS.queue
+typedef struct queue_entry {
+    void *value;
+    struct queue_entry *next;
+} queue_entry;
 
-// ::::::: DS
+typedef struct queue {
+    queue_entry *_head;
+    queue_entry *_last;
+    size_t _size;
+    size_t _valsize;
+} queue;
+
+void queue_init(queue *q, size_t __valsize);
+void queue_push(queue *q, void *__valbuff);
+void *queue_pop(queue *q);
+bool queue_empty(queue *q);
+void queue_clear(queue *q);
+void *queue_front(queue *q);
+void *queue_back(queue *q);
+size_t queue_size(queue *q);
+
+// ::::::: DS.tree
+typedef struct tree_node {
+    void *value;
+    vector child_nodes;
+} tree_node;
+
+typedef struct tree {
+    int value_size;
+    int size;
+    tree_node *head;
+} tree;
+
+void trnode_init(tree *tr, tree_node *node, void *__value_buff);
+tree_node *trnode_new(tree *tr, void *__value_buff);
+void trnode_dstr(tree_node *node);
+void tree_init(tree *tree, size_t __valsize);
+void tree_dump(tree *tr);
+void tree_dstr(tree *tr);
+tree_node *tree_add(tree *tr, tree_node *node, void *__valbuff);
+
 
 // tree
 /*

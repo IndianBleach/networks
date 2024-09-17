@@ -286,7 +286,7 @@ void parse(httprequest_buff *buff) {
 
             // CREATE VALUE STRUCT (of type)
         } else {
-            printf("skip=%c\n", ctx.buff[ctx.cursor]);
+            //printf("skip=%c\n", ctx.buff[ctx.cursor]);
         }
 
         //printf("cur=%c\n", ctx.buff[ctx.cursor]);
@@ -490,7 +490,7 @@ int get_word(parse_context *ctx) {
     int size = 0;
     while (i < ctx->end) {
         char p = ctx->buff[i];
-        printf("it=%c i=%i size=%i \n ", p, i, size);
+        //printf("it=%c i=%i size=%i \n ", p, i, size);
         if (isalpha(p)) {
             size++;
         } else if (p >= '0' && p <= '9') {
@@ -760,7 +760,7 @@ int get_tag(parse_context *ctx, char delimiter) {
     if (word_len < 0)
         return -1;
 
-    printf("WORD=%i\n", word_len);
+    //printf("WORD=%i\n", word_len);
 
     char next = ctx_at(ctx, ctx->cursor + word_len);
     if (next == delimiter) {

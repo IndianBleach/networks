@@ -18,9 +18,8 @@ void requestbuff_init(httprequest_buff *buff, unsigned int capacity);
 /////////// HEADER
 typedef enum header_value_type {
     HEADER_SINGLE_VALUE,
-    HEADER_LIST_VALUES,
-    HEADER_LIST_IN_LIST,
-    HEADER_TAG_VALUE,
+    HEADER_TAGVALUE,
+    HEADER_NESTED_TREE,
 } header_value_type;
 
 typedef union header_value {
@@ -34,7 +33,7 @@ typedef union header_value {
     // pepresenting list like: accept: 'eg, gz, er;  v=0.9'
     //                                  __value__,  __next__
     //                                 ..next->next.
-    vector *list;
+    tree *list;
 
 } header_value;
 
