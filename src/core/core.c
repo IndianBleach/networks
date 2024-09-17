@@ -660,6 +660,92 @@ void tree_dstr(tree *tr) {
 
 #pragma endregion
 
+typedef struct stack_entry {
+    void *value;
+    struct stack_entry *prev;
+} stack_entry;
+
+typedef struct stack {
+    stack_entry *head;
+    size_t typesize;
+    size_t len;
+} stack;
+
+void stack_entry_init(stack_entry *en, void *__value, size_t __typesize) {
+    en->prev = NULL;
+    if (__value != NULL) {
+        void *buff = malloc(__typesize);
+        en->value = buff;
+        memcpy(en->value, __value, __typesize);
+    }
+}
+
+stack_entry *stack_entry_new(void *__value, size_t __typesize) {
+    stack_entry *v = (stack_entry *) malloc(sizeof(stack_entry));
+    stack_entry_init(v, __value, __typesize);
+
+    return v;
+}
+
+void stack_init(stack *s, size_t __typesize) {
+    s->typesize = __typesize;
+    s->head = NULL;
+}
+
+int stack_push(stack *s, void *__value) {
+    if (s->head != NULL) {
+        stack_entry *old = s->head;
+        s->head = (stack_entry *) stack_entry_new(__value, s->typesize);
+        s->head->prev = old;
+    } else {
+        s->head = (stack_entry *) stack_entry_new(__value, s->typesize);
+        s->head->prev = NULL;
+    }
+    s->len++;
+}
+
+void *stack_pop(stack *s) {
+    if (s->head != NULL) {
+        stack_entry *old = s->head;
+        s->head = s->head->prev;
+        s->len--;
+        void *r = old->value;
+        free(old);
+        return r;
+    } else
+        return NULL;
+}
+
+int stack_size(stack *s) { return s->len; }
+
+void *stack_top(stack *s) {
+    if (s->head != NULL) {
+        return s->head->value;
+    } else
+        return NULL;
+}
+
+bool stack_empty(stack *s) { return s->len == 0; }
+
+void stack_dstr(stack *s) {
+    stack_entry *en = s->head;
+    while (en != NULL) {
+        stack_entry *c = en;
+        en = en->prev;
+        free(c->value);
+        free(c);
+    }
+}
+
+/*
+empty	Проверяет, является ли stack пустым.
+pop	Удаляет элемент из верхней части stack.
+push	Добавляет элемент в верхнюю часть stack.
+size	Возвращает количество элементов в контейнере stack.
+top	Возвращает ссылку на элемент в верхней части stack.
+*/
+
+
 typedef struct usr {
     int age;
     int value;
@@ -758,6 +844,26 @@ bool tree_bfs_contains(tree *tr, __basic_comparator, void *__value) {
     return false;
 }
 
+bool tree_dfs_contains(tree *tr, __basic_comparator, void *__value) {
+    /*
+        stack s
+        s.push(head)
+
+        while (!s.empty())
+            cur = s.pop()
+            comparing..
+            visits.add(cur)
+
+            for(i in cur.childs)
+                s.push(cur.childs[i])
+    */
+
+
+    //queue_clear(&q);
+
+    return false;
+}
+
 // bfs(t, compr)
 // dfs(t, compr)
 
@@ -780,23 +886,11 @@ int main() {
     int t4 = -20;
     int t5 = -400;
 
-    tree tr;
-    tree_init(&tr, sizeof(int));
-    tree_node *q1 = tree_add(&tr, tr.head, &t1);
-    tree_node *q2 = tree_add(&tr, tr.head, &t2);
-    tree_node *q3 = tree_add(&tr, tr.head, &t3);
-    tree_node *q4 = tree_add(&tr, tr.head, &t3);
-    tree_node *qq = tree_add(&tr, q4, &t4);
-
-    //tree_add(&tr, qq, &t5);
-    tree_dump(&tr);
-    //tree_dstr(&tr);
-
-    bool res = tree_bfs_contains(&tr, compr_ptrval_int, &(t5));
-    printf("RES=%i\n", res);
-
-    //int r1 = *(int *) queue_pop(&q);
-    //printf("RES=%i\n", r1);
+    stack s;
+    stack_init(&s, sizeof(int));
+    stack_push(&s, &t1);
+    int *p = (int *) stack_pop(&s);
+    free(p);
 
     return 0;
 }
