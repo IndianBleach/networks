@@ -31,6 +31,22 @@ char *itoa(int num) {
     return buff;
 }
 
+char *substr(char *buff, int len) {
+    char *s = malloc(sizeof(char) * (len + 1));
+    s[len] = '\0';
+
+    if (strlen(buff) < len) {
+        return NULL;
+    }
+
+    for (int i = 0; i < len; i++) {
+        s[i] = buff[i];
+    }
+
+
+    return s;
+}
+
 // ::::::: Comparators
 
 int __comparator_ptr(void *ptra, void *ptrb) { return ptra == ptrb; }
@@ -620,7 +636,7 @@ void tree_dump(tree *tr) {
     queue q;
     queue_init(&q, sizeof(tree_node *));
     queue_push(&q, &(tr->head));
-    printf("queue.add=%p\n", tr->head);
+    printf("[tree_dump]\n");
 
     while (!queue_empty(&q)) {
         // add childs to queue
@@ -633,7 +649,7 @@ void tree_dump(tree *tr) {
         }
 
         if (head->value != NULL) {
-            printf("cur=%i\n", *(int *) head->value);
+            //printf("cur=%i\n", *(int *) head->value);
         }
 
         for (size_t i = 0; i < head->child_nodes.size; i++) {
@@ -943,8 +959,14 @@ int compr_ptrval_int(void *dptra, void *dptrb) {
     return -1;
 }
 
+/*
 int main() {
     printf("HI!\n");
+    char *qw = "apple gold";
+
+    char *s = substr(&qw[6], 4);
+    printf("substr=%s\n", s);
+    return;
 
     int t1 = 5;
     int t2 = 10;
@@ -963,7 +985,7 @@ int main() {
 
     return 0;
 }
-
+*/
 // compr(node* node, void* node_value)
 // dfs(node* root, compr*)
 // bfs(node* root, compr*)

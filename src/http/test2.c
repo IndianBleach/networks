@@ -122,7 +122,7 @@ int main() {
     printf("test2.start\n");
 
 
-    char *t = "Accept-Encoding: gzip, deflate; br, zstd";
+    char *t = "Accept-Encoding: gzip";
 
     httprequest_buff buff;
     buff.ptr = t;

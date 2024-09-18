@@ -68,3 +68,20 @@ httpheader *httpheader_new(header_value_type __base_type) {
     p->name = NULL;
     return p;
 }
+
+void httpheader_dump(httpheader *t) {
+    if (t == NULL) {
+        printf("dump.httpheader: error>null\n");
+        return;
+    }
+
+    if (t->type == HEADER_SINGLE_VALUE) {
+        printf("dump.httpheader: name=%s type=SINGLE val=%s\n", t->name, t->value.single_value);
+    } else if (t->type == HEADER_TAGVALUE) {
+        printf("dump.httpheader: name=%s type=TAGVAL [tag=%s val=%s]\n", t->name, t->value.tag_value.tag,
+               t->value.tag_value.value);
+    } else if (t->type == HEADER_NESTED_TREE) {
+        printf("dump.httpheader: name=%s type=NEST_TREE:\n", t->name);
+        tree_dump(t->value.nested_list);
+    }
+}

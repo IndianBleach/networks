@@ -11,6 +11,7 @@
 
 // ::::::: String
 char *itoa(int num);
+char *substr(char *buff, int len);
 //char *strrev(char *str);
 
 // ::::::: Comparators

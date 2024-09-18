@@ -23,17 +23,14 @@ typedef enum header_value_type {
 } header_value_type;
 
 typedef union header_value {
-    const char *value;
+    const char *single_value;
 
     struct {
         const char *tag;
         const char *value;
-    } tagvalue;
+    } tag_value;
 
-    // pepresenting list like: accept: 'eg, gz, er;  v=0.9'
-    //                                  __value__,  __next__
-    //                                 ..next->next.
-    tree *list;
+    tree *nested_list;
 
 } header_value;
 
@@ -44,6 +41,8 @@ typedef struct httpheader {
 } httpheader;
 
 httpheader *httpheader_new(header_value_type __base_type);
+
+void httpheader_dump(httpheader *t);
 
 /////////// QUERY
 typedef enum queryparam_value_type {

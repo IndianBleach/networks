@@ -63,9 +63,9 @@ header_value_type get_tag_valuetype(parse_context *ctx) {
         case 0:
             return HEADER_SINGLE_VALUE;
         case 1:
-            return HEADER_LIST_VALUES;
+            return HEADER_NESTED_TREE;
         case 2:
-            return HEADER_LIST_IN_LIST;
+            return HEADER_NESTED_TREE;
         default:
             break;
     }
@@ -250,6 +250,9 @@ int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
 
 // PARSING
 // fix: out format? vector/headers struct
+
+char *ctx_now(parse_context *ctx) { return &ctx->buff[ctx->cursor]; }
+
 void parse(httprequest_buff *buff) {
     parse_context ctx;
     ctx.buff = buff->ptr;
@@ -260,33 +263,38 @@ void parse(httprequest_buff *buff) {
 
     printf("parse: cursr=%i end=%i\n", ctx.cursor, ctx.end);
 
-    // from tag_BEGIN to NEXT tag.
-    // tag: list/list_in_list/single
-    //
-
     httpreq_token *head = token_new(NULL, _parse_begin);
     httpreq_token *tail = head;
+
+    vector outv;
+    vector_init(&outv, 10, sizeof(httpheader *));
 
     // fix?
     bool value_open = false;
     header_value_type value_type = -1;
     bool tag_open = false;
 
+    // CUR_HEADER
+    httpheader *cur_header = NULL;
 
     while (ctx.cursor < ctx.end) {
         // parsing deep enums by priority
         int base_len;
         if ((base_len = get_tag(&ctx, ':')) > 0) {
-            printf("BASE_LEN:%i\n", base_len);
+            // ADD OLD BUILDER HEADER
+            if (cur_header != NULL) {
+                printf("[added] %p", cur_header);
+                vector_pushback(&outv, &(cur_header));
+            }
+
             ctx_move(&ctx, base_len + 1);
             tag_open = true;
-            value_type = get_tag_valuetype(&ctx);
             value_open = true;
+            value_type = get_tag_valuetype(&ctx);
             printf("VAL_TYPE:%i\n", value_type);
 
-            // CREATE VALUE STRUCT (of type)
-        } else {
-            //printf("skip=%c\n", ctx.buff[ctx.cursor]);
+            // START BUILDING NEW HEADER
+            cur_header = httpheader_new(value_type);
         }
 
         //printf("cur=%c\n", ctx.buff[ctx.cursor]);
@@ -316,10 +324,13 @@ void parse(httprequest_buff *buff) {
 
             } else {
                 //printf("get_word=%i curs=%i\n", local_len, ctx.cursor);
-                tail->next = token_new_at(word, &ctx.buff[ctx.cursor], base_len);
-                tail = tail->next;
+
+                // CUR HEADER SET VALUE
+                cur_header->value.single_value = substr(ctx_now(&ctx), base_len);
+                printf("VAL!=%s\n", cur_header->value.single_value);
                 ctx_move(&ctx, base_len);
-                token_dump(tail);
+
+                httpheader_dump(cur_header);
             }
 
             // getLongWord
