@@ -715,6 +715,7 @@ stack_entry *stack_entry_new(void *__value, size_t __typesize) {
 void stack_init(stack *s, size_t __typesize) {
     s->typesize = __typesize;
     s->head = NULL;
+    s->len = 0;
 }
 
 int stack_push(stack *s, void *__value) {
@@ -750,7 +751,10 @@ void *stack_top(stack *s) {
         return NULL;
 }
 
-bool stack_empty(stack *s) { return s->len == 0; }
+bool stack_empty(stack *s) {
+    //printf("len=%i\n", s->len);
+    return s->len == 0;
+}
 
 void stack_dstr(stack *s) {
     stack_entry *en = s->head;
@@ -880,30 +884,47 @@ bool tree_dfs_contains(tree *tr, __basic_comparator, void *__value) {
             visits.add(cur)
 
             for(i in cur.childs)
-                s.push(cur.childs[i])
+                if (cur.childs[i].visit == false)
+                    s.push(cur.childs[i])
     */
+
+    hashset set;
+    hashset_init(&set);
+
     stack s;
     stack_init(&s, sizeof(tree_node *));
     stack_push(&s, &(tr->head));
+
+    bool res = false;
 
     while (!stack_empty(&s)) {
         tree_node **dptr = stack_pop(&s);
         if (dptr != NULL) {
             tree_node *node = *dptr;
-            printf("dfs.node=%p\n", node);
-            //parsing
+
+            char *hash = itoa((int) node);
+
+            if (node->value != NULL) {
+                if (compare(node->value, __value) == 0)
+                    res = true;
+            }
 
             for (size_t i = 0; i < node->child_nodes.size; i++) {
-                //if (hashmap_)
+                if (hashset_get(&set, hash) == -1) {
+                    stack_push(&s, vector_at(&node->child_nodes, i));
+                }
             }
+
+            free(hash);
         }
 
         free(dptr);
     }
 
-    //queue_clear(&q);
+    stack_dstr(&s);
+    hashset_dstr(&set);
 
-    return false;
+    return res;
 }
 
 // itoa
@@ -924,31 +945,21 @@ int compr_ptrval_int(void *dptra, void *dptrb) {
 
 int main() {
     printf("HI!\n");
-    int t = 123 % 10;
-    printf("[tt]=%i\n", t);
-
-    char *tt = itoa(11313);
-    printf("itoa=%s\n", tt);
-    return;
 
     int t1 = 5;
-    int t2 = 0;
-    int t3 = 99;
-    int t4 = -20;
-    int t5 = -400;
+    int t2 = 10;
+    int t3 = -55;
 
+    tree tr;
+    tree_init(&tr, sizeof(int));
+    tree_node *r1 = tree_add(&tr, tr.head, &t1);
+    tree_node *r2 = tree_add(&tr, r1, &t2);
+    tree_node *r3 = tree_add(&tr, r2, &t2);
 
-    hashset set;
-    hashset_init(&set);
-    //    hashset_add(&set, )
-    // /hashset_get(, )
+    bool res = tree_dfs_contains(&tr, compr_ptrval_int, &t3);
+    printf("[res]=%i\n", res);
 
-
-    stack s;
-    stack_init(&s, sizeof(int));
-    stack_push(&s, &t1);
-    int *p = (int *) stack_pop(&s);
-    free(p);
+    tree_dstr(&tr);
 
     return 0;
 }
