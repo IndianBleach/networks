@@ -9,6 +9,10 @@
 #include <string.h>
 #include <string.h> // Для strdup
 
+// ::::::: String
+char *itoa(int num);
+//char *strrev(char *str);
+
 // ::::::: Comparators
 #define __basic_comparator int (*compare)(void *a, void *b)
 extern int __comparator_ptr(void *ptra, void *ptrb);

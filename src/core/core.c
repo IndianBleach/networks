@@ -8,6 +8,31 @@
 #include <stdlib.h>
 #include <string.h>
 
+// ::::::: String
+char *itoa(int num) {
+    int diff = 1;
+
+    int len = 0;
+    int t = num;
+    while (t > 0) {
+        t /= 10;
+        len++;
+    }
+
+    char *buff = malloc(sizeof(char) * (len + 1));
+    buff[len] = '\0';
+
+    while (num > 0) {
+        diff = num % 10;
+        num = (num - diff) / 10;
+        buff[--len] = diff + '0';
+    }
+
+    return buff;
+}
+
+// ::::::: Comparators
+
 int __comparator_ptr(void *ptra, void *ptrb) { return ptra == ptrb; }
 
 int __comparator_dptr(void *dptra, void *dptrb) {
@@ -857,12 +882,32 @@ bool tree_dfs_contains(tree *tr, __basic_comparator, void *__value) {
             for(i in cur.childs)
                 s.push(cur.childs[i])
     */
+    stack s;
+    stack_init(&s, sizeof(tree_node *));
+    stack_push(&s, &(tr->head));
 
+    while (!stack_empty(&s)) {
+        tree_node **dptr = stack_pop(&s);
+        if (dptr != NULL) {
+            tree_node *node = *dptr;
+            printf("dfs.node=%p\n", node);
+            //parsing
+
+            for (size_t i = 0; i < node->child_nodes.size; i++) {
+                //if (hashmap_)
+            }
+        }
+
+        free(dptr);
+    }
 
     //queue_clear(&q);
 
     return false;
 }
+
+// itoa
+// reverse
 
 // bfs(t, compr)
 // dfs(t, compr)
@@ -879,12 +924,25 @@ int compr_ptrval_int(void *dptra, void *dptrb) {
 
 int main() {
     printf("HI!\n");
+    int t = 123 % 10;
+    printf("[tt]=%i\n", t);
+
+    char *tt = itoa(11313);
+    printf("itoa=%s\n", tt);
+    return;
 
     int t1 = 5;
     int t2 = 0;
     int t3 = 99;
     int t4 = -20;
     int t5 = -400;
+
+
+    hashset set;
+    hashset_init(&set);
+    //    hashset_add(&set, )
+    // /hashset_get(, )
+
 
     stack s;
     stack_init(&s, sizeof(int));
