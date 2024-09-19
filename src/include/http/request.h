@@ -17,25 +17,30 @@ void requestbuff_init(httprequest_buff *buff, unsigned int capacity);
 
 /////////// HEADER
 typedef enum header_value_type {
-    HEADER_SINGLE_VALUE,
-    HEADER_TAGVALUE,
-    HEADER_NESTED_TREE,
+    HVAL_WORD,
+    HVAL_INT,
+    HVAL_FLOAT,
+    HVAL_TAGVALUE,
+    HVAL_LIST,
+    UNSET,
 } header_value_type;
 
-typedef union header_value {
-    const char *single_value;
+typedef struct header_value {
+    union {
+        const char *single_value;
 
-    struct {
-        const char *tag;
-        const char *value;
-    } tag_value;
+        struct {
+            const char *tag;
+            const char *value;
+        } tag_value;
 
-    tree *nested_list;
+        tree *nested_list;
+    };
 
+    header_value_type type;
 } header_value;
 
 typedef struct httpheader {
-    header_value_type type;
     header_value value;
     const char *name;
 } httpheader;

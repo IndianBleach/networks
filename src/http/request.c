@@ -64,24 +64,78 @@ void queryparam_switch_on_list(queryparam *param, queryparam_value_type type) {
 // :: Headers
 httpheader *httpheader_new(header_value_type __base_type) {
     httpheader *p = (httpheader *) malloc(sizeof(httpheader));
-    p->type = __base_type;
+    p->value.type = UNSET;
     p->name = NULL;
     return p;
 }
 
+void _dump_nested_list(tree *tr) {
+    queue q;
+    queue_init(&q, sizeof(tree_node *));
+    queue_push(&q, &(tr->head));
+    //printf("[_dump_nested_list] head=%p\n", tr->head);
+
+    while (!queue_empty(&q)) {
+        // add childs to queue
+        tree_node **dptr = (tree_node **) queue_pop(&q);
+        tree_node *head = NULL;
+        if (dptr != NULL) {
+            head = *dptr;
+            //printf("free\n");
+            free(dptr);
+        }
+
+        //printf("HEAD=%p %p\n", head, head->value);
+        if (head->value != NULL) {
+            header_value *v1 = *(header_value **) head->value;
+            //printf("VV1=%i\n", v1->type);
+            switch (v1->type) {
+                case HVAL_WORD:
+                    printf("[tree] word=%s\n", v1->single_value);
+                    break;
+
+                case HVAL_LIST:
+                    //printf("[LIST] size=%i\n", v1->nested_list->head->child_nodes.size);
+                    for (size_t i = 0; i < v1->nested_list->head->child_nodes.size; i++) {
+                        tree_node **find = (tree_node **) vector_at(&v1->nested_list->head->child_nodes, i);
+                        if (find != NULL) {
+                            //printf("push2=%p\n", find);
+                            queue_push(&q, find); //
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        for (size_t i = 0; i < head->child_nodes.size; i++) {
+            tree_node **find = (tree_node **) vector_at(&head->child_nodes, i);
+            if (find != NULL) {
+                //printf("push=%p\n", find);
+                queue_push(&q, find); //
+            }
+        }
+    }
+
+    queue_clear(&q);
+}
+
 void httpheader_dump(httpheader *t) {
     if (t == NULL) {
-        printf("dump.httpheader: error>null\n");
+        printf("DUMP.httpheader: error>null\n");
         return;
     }
 
-    if (t->type == HEADER_SINGLE_VALUE) {
-        printf("dump.httpheader: name=%s type=SINGLE val=%s\n", t->name, t->value.single_value);
-    } else if (t->type == HEADER_TAGVALUE) {
-        printf("dump.httpheader: name=%s type=TAGVAL [tag=%s val=%s]\n", t->name, t->value.tag_value.tag,
+    if (t->value.type == HVAL_TAGVALUE) {
+        printf("DUMP.httpheader: name=%s type=TAGVAL [tag=%s val=%s]\n", t->name, t->value.tag_value.tag,
                t->value.tag_value.value);
-    } else if (t->type == HEADER_NESTED_TREE) {
-        printf("dump.httpheader: name=%s type=NEST_TREE:\n", t->name);
-        tree_dump(t->value.nested_list);
+    } else if (t->value.type == HVAL_LIST) {
+        printf("DUMP.httpheader: name=%s type=NEST_TREE: %p\n", t->name, t->value.nested_list);
+        _dump_nested_list(t->value.nested_list);
+    } else if (t->value.type == UNSET) {
+        printf("DUMP.httpheader: name=%s type=UNSET val=%s\n", t->name);
+    } else {
+        printf("DUMP.httpheader: name=%s type=%i val=%s\n", t->name, t->value.type, t->value.single_value);
     }
 }

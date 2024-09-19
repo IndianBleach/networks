@@ -122,7 +122,7 @@ int main() {
     printf("test2.start\n");
 
 
-    char *t = "Accept-Encoding: gzip";
+    char *t = "Accept-Encoding: gzip, time; tr, bob\nSec-Fetch-Site: same-origin";
 
     httprequest_buff buff;
     buff.ptr = t;

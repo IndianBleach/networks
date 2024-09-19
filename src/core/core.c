@@ -636,7 +636,7 @@ void tree_dump(tree *tr) {
     queue q;
     queue_init(&q, sizeof(tree_node *));
     queue_push(&q, &(tr->head));
-    printf("[tree_dump]\n");
+    printf("[tree_dump] head=%p\n", tr->head);
 
     while (!queue_empty(&q)) {
         // add childs to queue
@@ -647,6 +647,8 @@ void tree_dump(tree *tr) {
             //printf("free\n");
             free(dptr);
         }
+
+        printf("DUMP.tree: node=%p\n", head);
 
         if (head->value != NULL) {
             //printf("cur=%i\n", *(int *) head->value);

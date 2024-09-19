@@ -36,43 +36,6 @@ void token_dump(httpreq_token *tk) {
     printf("val=%s type=%i\n", tk->value, tk->type);
 }
 
-// UTILS
-header_value_type get_tag_valuetype(parse_context *ctx) {
-    int cur = ctx->cursor;
-    int end = ctx->end;
-    char *begin = ctx->buff;
-
-    int list_deep_level = 0;
-    while (cur < end) {
-        //printf("CUR=%i P=%c\n", cur, begin[cur]);
-        if (begin[cur] == '\n') // tag value line end
-            break;
-        if (begin[cur] == ':') // next tag
-            break;
-
-        if (begin[cur] == ',') {
-            list_deep_level = 1;
-        } else if (begin[cur] == ';') {
-            list_deep_level = 2;
-            break;
-        }
-        cur++;
-    }
-
-    switch (list_deep_level) {
-        case 0:
-            return HEADER_SINGLE_VALUE;
-        case 1:
-            return HEADER_NESTED_TREE;
-        case 2:
-            return HEADER_NESTED_TREE;
-        default:
-            break;
-    }
-
-    return HEADER_SINGLE_VALUE;
-};
-
 // EXTRACT DATA
 httpmethod extract_method(parse_context *ctx) {
     int cur = ctx->cursor;
@@ -248,10 +211,65 @@ int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
     return 1;
 }
 
-// PARSING
-// fix: out format? vector/headers struct
-
+/////////////// parsing utils.
 char *ctx_now(parse_context *ctx) { return &ctx->buff[ctx->cursor]; }
+
+unsigned int _get_list_deep(parse_context *ctx) {
+    int cur = ctx->cursor;
+    int end = ctx->end;
+    char *begin = ctx->buff;
+
+    int list_deep_level = 0;
+    while (cur < end) {
+        //printf("CUR=%i P=%c\n", cur, begin[cur]);
+
+        //printf("vvv=%c\n", begin[cur]);
+        if (begin[cur] == '\n') // tag value line end
+            break;
+        if (begin[cur] == ':') // next tag
+            break;
+
+        if (begin[cur] == ',') {
+            list_deep_level = 1;
+        } else if (begin[cur] == ';') {
+            list_deep_level = 2;
+            break;
+        }
+        cur++;
+    }
+
+    //printf("VVVV=%i\n", list_deep_level);
+
+    return list_deep_level;
+};
+
+int _nested_value_deep_len(parse_context *ctx) {}
+
+void _header_set_singval(httpheader *header, char *val) { header->value.single_value = val; }
+
+void _header_add_singval(httpheader *header, char **dptr_val, tree_node *nested_list) {
+    printf("_header_add_singval=%i\n", nested_list->child_nodes.size);
+    vector_pushback(&nested_list->child_nodes, dptr_val);
+    tree_dump(header->value.nested_list);
+}
+
+header_value *_headervalue_new_single(header_value_type type, const char *dptr_val) {
+    header_value *val = (header_value *) malloc(sizeof(header_value));
+    val->type = type;
+    val->single_value = dptr_val;
+
+    return val;
+}
+
+header_value *_headervalue_new_list() {
+    header_value *val = (header_value *) malloc(sizeof(header_value));
+    val->type = HVAL_LIST;
+    val->single_value = NULL;
+    tree *tr = (tree *) malloc(sizeof(tree));
+    tree_init(tr, sizeof(header_value *));
+    val->nested_list = tr;
+    return val;
+}
 
 void parse(httprequest_buff *buff) {
     parse_context ctx;
@@ -261,7 +279,7 @@ void parse(httprequest_buff *buff) {
 
     printf("PARSING: %s\n", buff->ptr);
 
-    printf("parse: cursr=%i end=%i\n", ctx.cursor, ctx.end);
+    //printf("parse: cursr=%i end=%i\n", ctx.cursor, ctx.end);
 
     httpreq_token *head = token_new(NULL, _parse_begin);
     httpreq_token *tail = head;
@@ -274,27 +292,63 @@ void parse(httprequest_buff *buff) {
     header_value_type value_type = -1;
     bool tag_open = false;
 
+
     // CUR_HEADER
     httpheader *cur_header = NULL;
+    unsigned int cur_list_deep = 0;
+    tree_node *cur_nested_list_node = NULL;
 
     while (ctx.cursor < ctx.end) {
         // parsing deep enums by priority
+        //printf("___CURS=%i\n", ctx.cursor);
         int base_len;
         if ((base_len = get_tag(&ctx, ':')) > 0) {
+            char *tagname = substr(ctx_now(&ctx), base_len);
+            printf("__TAGNAME=%s\n", tagname);
+
             // ADD OLD BUILDER HEADER
             if (cur_header != NULL) {
                 printf("[added] %p", cur_header);
+                httpheader_dump(cur_header);
                 vector_pushback(&outv, &(cur_header));
             }
 
-            ctx_move(&ctx, base_len + 1);
+
             tag_open = true;
             value_open = true;
-            value_type = get_tag_valuetype(&ctx);
-            printf("VAL_TYPE:%i\n", value_type);
 
-            // START BUILDING NEW HEADER
+            ctx_move(&ctx, base_len + 1); // tag + :
+
+            cur_list_deep = _get_list_deep(&ctx);
             cur_header = httpheader_new(value_type);
+            cur_header->name = tagname;
+            if (cur_list_deep == 0) {
+            }
+            if (cur_list_deep == 1) {
+                tree *nested = (tree *) malloc(sizeof(tree));
+                tree_init(nested, sizeof(header_value *));
+                cur_header->value.nested_list = nested;
+                cur_header->value.type = HVAL_LIST;
+                cur_nested_list_node = nested->head;
+            } else if (cur_list_deep == 2) {
+                // FIRST
+                tree *n1 = (tree *) malloc(sizeof(tree));
+                tree_init(n1, sizeof(header_value *));
+                cur_header->value.nested_list = n1;
+                cur_header->value.type = HVAL_LIST;
+                // SEC
+                tree *n2 = (tree *) malloc(sizeof(tree));
+                tree_init(n2, sizeof(header_value *));
+                header_value *v2 = (header_value *) malloc(sizeof(header_value));
+                v2->type = HVAL_LIST;
+                v2->nested_list = n2;
+                cur_nested_list_node = n2->head;
+                tree_add(cur_header->value.nested_list, cur_header->value.nested_list->head,
+                         &(v2)); // add 2 level top top level
+                //printf("d1=%p d2=%p\n", cur_header->value.nested_list->head, cur_nested_list_node);
+            }
+
+            //ctx_move(&ctx, base_len + 1);
         }
 
         //printf("cur=%c\n", ctx.buff[ctx.cursor]);
@@ -322,15 +376,27 @@ void parse(httprequest_buff *buff) {
                 token_dump(tail);
                 */
 
-            } else {
-                //printf("get_word=%i curs=%i\n", local_len, ctx.cursor);
+            }
+            // WORD
+            else {
+                char *word = substr(ctx_now(&ctx), base_len);
+                printf("WORD=%s deep=%p\n", word, cur_nested_list_node);
+                switch (cur_list_deep) {
+                    case 0:
+                        cur_header->value.type = HVAL_WORD;
+                        cur_header->value.single_value = word;
+                        break;
+                    case 1:
+                    case 2:
+                        header_value *v1 = _headervalue_new_single(HVAL_WORD, word);
+                        tree_add(cur_header->value.nested_list, cur_nested_list_node, &(v1));
+                        break;
+                    default:
+                        break;
+                }
 
-                // CUR HEADER SET VALUE
-                cur_header->value.single_value = substr(ctx_now(&ctx), base_len);
-                printf("VAL!=%s\n", cur_header->value.single_value);
                 ctx_move(&ctx, base_len);
-
-                httpheader_dump(cur_header);
+                //httpheader_dump(cur_header);
             }
 
             // getLongWord
@@ -373,22 +439,15 @@ void parse(httprequest_buff *buff) {
 
         // symbol parsing
         if (ctx.buff[ctx.cursor] == ',') {
-            /*
-            if (enum_level >= 1) {
-                tail->next = token_new(NULL, enum_delim_comma);
-                tail = tail->next;
-                ctx_move(&ctx, 1);
-            }
-            */
-            // FIRST LIST
+            //pass;
         } else if (ctx.buff[ctx.cursor] == ';') {
-            /*
-            if (enum_level >= 1) {
-                tail->next = token_new(NULL, enum_delim_semicolon);
-                tail = tail->next;
-                ctx_move(&ctx, 1);
-            }
-            */
+            printf("SEMICOL\n");
+            // ADD NEW TOP LEVEL LIST IN TREE
+            // new header (LIST) add to top level (to head child nodes).
+            // cur_actual_list = newlist
+            header_value *v = _headervalue_new_list();
+            tree_add(cur_header->value.nested_list, cur_header->value.nested_list->head, &(v));
+            cur_nested_list_node = v->nested_list->head;
         }
 
         // longWord
@@ -396,6 +455,12 @@ void parse(httprequest_buff *buff) {
 
         ctx.cursor++;
     }
+
+    // for vec
+    // -> dump header
+
+    printf("END\n");
+    httpheader_dump(cur_header);
 }
 
 char ctx_at(parse_context *ctx, int pos) {
