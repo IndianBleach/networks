@@ -91,7 +91,12 @@ void _dump_nested_list(tree *tr) {
             //printf("VV1=%i\n", v1->type);
             switch (v1->type) {
                 case HVAL_WORD:
-                    printf("[tree] word=%s\n", v1->single_value);
+                case HVAL_STRING:
+                case HVAL_INT:
+                case HVAL_FLOAT:
+                case HVAL_VERSION:
+                case HVAL_PATH:
+                    printf("-->%s ", v1->single_value);
                     break;
 
                 case HVAL_LIST:
@@ -119,6 +124,7 @@ void _dump_nested_list(tree *tr) {
     }
 
     queue_clear(&q);
+    printf("\n");
 }
 
 void httpheader_dump(httpheader *t) {

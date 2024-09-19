@@ -18,6 +18,11 @@ void requestbuff_init(httprequest_buff *buff, unsigned int capacity);
 /////////// HEADER
 typedef enum header_value_type {
     HVAL_WORD,
+    HVAL_PATH,
+    HVAL_STRING,
+    HVAL_IPADDR,
+    HVAL_SERVER_ADDR,
+    HVAL_VERSION,
     HVAL_INT,
     HVAL_FLOAT,
     HVAL_TAGVALUE,

@@ -77,6 +77,9 @@ int getm_path(parse_context *ctx);
 int get_tag(parse_context *ctx, char delimiter);
 int get_querytag_value(parse_context *ctx);
 
+// spec
+int get_fulladdr(parse_context *ctx);
+
 // PRE-PARSING
 httpmethod extract_method(parse_context *ctx);
 int extract_path(parse_context *ctx, httppath_segment **__out_pathhead);

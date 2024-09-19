@@ -121,8 +121,10 @@ Accept-Language: ru,en;q=0.9
 int main() {
     printf("test2.start\n");
 
+    //
+    char *t = "Referer: https://127.0.0.1:8013\nHost: 127.0.0.1:8013\nAccept-Encoding: gzip, deflate, br, "
+              "zstd\nAccept: image/avif,image/webp,image/apng,image/svg+xml\nsec-ch-ua-platform: \"Windows\"";
 
-    char *t = "Accept-Encoding: gzip, time; tr, bob\nSec-Fetch-Site: same-origin";
 
     httprequest_buff buff;
     buff.ptr = t;

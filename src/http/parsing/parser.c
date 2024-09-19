@@ -281,9 +281,6 @@ void parse(httprequest_buff *buff) {
 
     //printf("parse: cursr=%i end=%i\n", ctx.cursor, ctx.end);
 
-    httpreq_token *head = token_new(NULL, _parse_begin);
-    httpreq_token *tail = head;
-
     vector outv;
     vector_init(&outv, 10, sizeof(httpheader *));
 
@@ -308,8 +305,8 @@ void parse(httprequest_buff *buff) {
 
             // ADD OLD BUILDER HEADER
             if (cur_header != NULL) {
-                printf("[added] %p", cur_header);
-                httpheader_dump(cur_header);
+                printf("[added] %p\n", cur_header);
+                //httpheader_dump(cur_header);
                 vector_pushback(&outv, &(cur_header));
             }
 
@@ -351,48 +348,55 @@ void parse(httprequest_buff *buff) {
             //ctx_move(&ctx, base_len + 1);
         }
 
-        //printf("cur=%c\n", ctx.buff[ctx.cursor]);
+        //printf("base_len=%i curs=%i\n", base_len, ctx.cursor);
 
-        if ((base_len = get_word(&ctx)) > 0) {
+        if ((base_len = get_fulladdr(&ctx)) > 0) {
+            char *parse_value = substr(ctx_now(&ctx), base_len);
+
+            // add header
+            if (cur_list_deep > 0) {
+                header_value *v1 = _headervalue_new_single(HVAL_SERVER_ADDR, parse_value);
+                tree_add(cur_header->value.nested_list, cur_nested_list_node, &(v1));
+            } else if (cur_list_deep == 0) {
+                cur_header->value.type = HVAL_SERVER_ADDR;
+                cur_header->value.single_value = parse_value;
+            }
+
+            ctx_move(&ctx, base_len);
+
+        } else if ((base_len = get_word(&ctx)) > 0) {
+            printf("---->get_word\n");
             // variants
             int local_len = 0;
 
-            // getPath
             if ((local_len = getm_path(&ctx)) > 0) {
-                //printf("get_path=%i curs=%i\n", local_len, ctx.cursor);
-                tail->next = token_new_at(word_path, &ctx.buff[ctx.cursor], local_len);
-                tail = tail->next;
+                char *path = substr(ctx_now(&ctx), local_len);
+
+                // add header
+                if (cur_list_deep > 0) {
+                    header_value *v1 = _headervalue_new_single(HVAL_PATH, path);
+                    tree_add(cur_header->value.nested_list, cur_nested_list_node, &(v1));
+                } else if (cur_list_deep == 0) {
+                    cur_header->value.type = HVAL_PATH;
+                    cur_header->value.single_value = path;
+                }
+
+                // moving
                 ctx_move(&ctx, local_len);
-                token_dump(tail);
 
             } else if ((local_len = get_tag(&ctx, ':')) > 0) {
                 // break current iteration. top level parsing tag.
                 continue;
-                /*
-                printf("get_tag=%i curs=%i\n", local_len, ctx.cursor);
-                tail->next = token_new_at(header_tag, &ctx.buff[ctx.cursor], local_len);
-                tail = tail->next;
-                ctx_move(&ctx, local_len);
-                token_dump(tail);
-                */
-
-            }
-            // WORD
-            else {
+            } else {
                 char *word = substr(ctx_now(&ctx), base_len);
-                printf("WORD=%s deep=%p\n", word, cur_nested_list_node);
-                switch (cur_list_deep) {
-                    case 0:
-                        cur_header->value.type = HVAL_WORD;
-                        cur_header->value.single_value = word;
-                        break;
-                    case 1:
-                    case 2:
-                        header_value *v1 = _headervalue_new_single(HVAL_WORD, word);
-                        tree_add(cur_header->value.nested_list, cur_nested_list_node, &(v1));
-                        break;
-                    default:
-                        break;
+
+                // add header
+                if (cur_list_deep > 0) {
+                    header_value *v1 = _headervalue_new_single(HVAL_WORD, word);
+                    tree_add(cur_header->value.nested_list, cur_nested_list_node, &(v1));
+                } else if (cur_list_deep == 0) {
+                    cur_header->value.type = HVAL_WORD;
+                    cur_header->value.single_value = word;
                 }
 
                 ctx_move(&ctx, base_len);
@@ -401,41 +405,77 @@ void parse(httprequest_buff *buff) {
 
             // getLongWord
         } else if ((base_len = get_string(&ctx)) > 0) {
-            // variants
+            char *string = substr(ctx_now(&ctx), base_len);
 
-            //printf("get_string=%i\n", base_len);
-            tail->next = token_new_at(string, &ctx.buff[ctx.cursor], base_len);
-            tail = tail->next;
+            // add header
+            if (cur_list_deep > 0) {
+                header_value *v1 = _headervalue_new_single(HVAL_STRING, string);
+                tree_add(cur_header->value.nested_list, cur_nested_list_node, &(v1));
+            } else if (cur_list_deep == 0) {
+                cur_header->value.type = HVAL_STRING;
+                cur_header->value.single_value = string;
+            }
+            // moving
             ctx_move(&ctx, base_len);
-            token_dump(tail);
+
         } else if ((base_len = get_number(&ctx)) > 0) {
+            printf("---->get_number\n");
             int local;
             if ((local = get_ipaddr(&ctx)) > 0) {
-                //printf("get_number.get_ipaddr=%i\n", local);
-                tail->next = token_new_at(ipaddr, &ctx.buff[ctx.cursor], local);
-                tail = tail->next;
+                char *ipaddr = substr(ctx_now(&ctx), local);
+                printf("IPADDR=%s\n", ipaddr);
+                // add header
+                if (cur_list_deep > 0) {
+                    header_value *v1 = _headervalue_new_single(HVAL_IPADDR, ipaddr);
+                    tree_add(cur_header->value.nested_list, cur_nested_list_node, &(v1));
+                } else if (cur_list_deep == 0) {
+                    cur_header->value.type = HVAL_IPADDR;
+                    cur_header->value.single_value = ipaddr;
+                }
+                // moving
                 ctx_move(&ctx, local);
-                token_dump(tail);
+
             } else if ((local = get_version(&ctx)) > 0) {
-                //printf("get_number.get_version=%i\n", local);
-                tail->next = token_new_at(version, &ctx.buff[ctx.cursor], local);
-                tail = tail->next;
-                ctx_move(&ctx, local);
-                token_dump(tail);
-            } else {
-                int floated;
-                if ((floated = is_float(&ctx, base_len)) > 0) {
-                    //printf("get_number.floated=%i\n", base_len);
-                } else {
-                    //printf("get_number.int=%i\n", base_len);
+                printf("---->get_number.get_version\n");
+
+                char *parse_value = substr(ctx_now(&ctx), local);
+                printf("---VAL=%s\n", parse_value);
+                // add header
+                if (cur_list_deep > 0) {
+                    header_value *v1 = _headervalue_new_single(HVAL_VERSION, parse_value);
+                    tree_add(cur_header->value.nested_list, cur_nested_list_node, &(v1));
+                } else if (cur_list_deep == 0) {
+                    cur_header->value.type = HVAL_VERSION;
+                    cur_header->value.single_value = parse_value;
                 }
 
-                tail->next = token_new_at(number, &ctx.buff[ctx.cursor], base_len);
-                tail = tail->next;
+                // moving
+                ctx_move(&ctx, local);
+
+            } else {
+                header_value_type parse_value_type;
+                if (is_float(&ctx, base_len) > 0) {
+                    parse_value_type = HVAL_FLOAT;
+                } else {
+                    parse_value_type = HVAL_INT;
+                }
+
+                char *parse_value = substr(ctx_now(&ctx), base_len);
+                printf("---VAL=%s\n", parse_value);
+                // add header
+                if (cur_list_deep > 0) {
+                    header_value *v1 = _headervalue_new_single(parse_value_type, parse_value);
+                    tree_add(cur_header->value.nested_list, cur_nested_list_node, &(v1));
+                } else if (cur_list_deep == 0) {
+                    cur_header->value.type = parse_value_type;
+                    cur_header->value.single_value = parse_value;
+                }
+
                 ctx_move(&ctx, base_len);
-                token_dump(tail);
             }
         }
+
+        printf("cur=%c\n", ctx.buff[ctx.cursor]);
 
         // symbol parsing
         if (ctx.buff[ctx.cursor] == ',') {
@@ -456,11 +496,22 @@ void parse(httprequest_buff *buff) {
         ctx.cursor++;
     }
 
+    // add last element
+    if (cur_header != NULL) {
+        printf("[added2] %p\n", cur_header);
+        //httpheader_dump(cur_header);
+        vector_pushback(&outv, &(cur_header));
+    }
+
+
     // for vec
     // -> dump header
 
+    for (size_t i = 0; i < outv.size; i++) {
+        httpheader_dump(*(httpheader **) vector_at(&outv, i));
+    }
+
     printf("END\n");
-    httpheader_dump(cur_header);
 }
 
 char ctx_at(parse_context *ctx, int pos) {
@@ -482,6 +533,39 @@ void ctx_move(parse_context *ctx, int steps) {
     //printf("ctx_move: %i -> %i\n", old, ctx->cursor);
 }
 
+// https://127.0.0.1:8013 http://127.0.0.1:8013
+int get_fulladdr(parse_context *ctx) {
+    char *buff = &ctx->buff[ctx->cursor];
+    int old_curs = ctx->cursor;
+    int end = ctx->end;
+    int i = 0;
+    int word_len = get_word(ctx);
+    if (word_len > 0) {
+        if (word_len + 3 >= end) {
+            return -1;
+        }
+
+        char *val = substr(buff, word_len);
+        if (strcmp(val, "https") != 0 && strcmp(val, "http") != 0) {
+            free(val);
+            return -1;
+        }
+
+        if (buff[word_len] == ':' && buff[word_len + 1] == '/' && buff[word_len + 2] == '/') {
+            ctx_move(ctx, word_len + 3);
+            int ip_len = get_ipaddr(ctx);
+            if (ip_len > 0) {
+                ctx->cursor = old_curs; // back cursor
+                return word_len + 3 + ip_len;
+            }
+        }
+    }
+
+    ctx->cursor = old_curs; // back cursor
+
+    return -1;
+}
+
 // return len("len(word)")
 // "win" -> 5
 int get_string(parse_context *ctx) {
@@ -494,7 +578,7 @@ int get_string(parse_context *ctx) {
 
         while (local < ctx->end) {
             if (ctx->buff[local] == '"') {
-                return size;
+                return size + 1;
             }
 
             if (ctx->buff[local] == '\n') {
@@ -749,7 +833,7 @@ int get_ipaddr(parse_context *ctx) {
     char *begin = &ctx->buff[ctx->cursor];
     if ((ip_len = get_version(ctx)) > 0) {
         // valid address, has 4 '.'
-        printf("ip_len=%i\n", ip_len);
+        //printf("ip_len=%i\n", ip_len);
         int require_dot = 3;
         int segment_max_len = 3;
         for (int i = 0; i < ip_len; i++) {
@@ -814,17 +898,19 @@ int getm_path(parse_context *ctx) {
             ctx->cursor += 1;
             //ctx_move(ctx, 1);
             //printf("CTX.CUR=%c\n", ctx->buff[ctx->cursor]);
-        } else {
-            if (count > 1) {
-                break;
-            } else {
-                ctx_move(ctx, -total_len);
-                return -1;
-            }
+        } else if (!isalpha(next) || !isalnum(next)) {
+            break;
         }
     }
 
-    ctx_move(ctx, -total_len); // path parsed, but cursor moving back
+    // path parsed, but cursor moving back
+    ctx_move(ctx, -total_len);
+
+    if (count == 0) {
+        return -1;
+    }
+
+
     return total_len;
 }
 
@@ -839,7 +925,8 @@ int get_tag(parse_context *ctx, char delimiter) {
     //printf("WORD=%i\n", word_len);
 
     char next = ctx_at(ctx, ctx->cursor + word_len);
-    if (next == delimiter) {
+    char next2 = ctx_at(ctx, ctx->cursor + word_len + 1);
+    if (next == delimiter && next2 != '/') {
         return word_len;
     } else {
         return -1;
