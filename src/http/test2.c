@@ -122,9 +122,10 @@ int main() {
     printf("test2.start\n");
 
     //
-    char *t = "Referer: https://127.0.0.1:8013\nHost: 127.0.0.1:8013\nAccept-Encoding: gzip, deflate, br, "
-              "zstd\nAccept: image/avif,image/webp,image/apng,image/svg+xml\nsec-ch-ua-platform: \"Windows\"";
+    //char *t = "Referer: https://127.0.0.1:8013\nHost: 127.0.0.1:8013\nAccept-Encoding: gzip, deflate, br, "
+    //          "zstd\nAccept: image/avif,image/webp,image/apng,image/svg+xml\nsec-ch-ua-platform: \"Windows\"";
 
+    char *t = "Referer: qwd=wordded";
 
     httprequest_buff buff;
     buff.ptr = t;

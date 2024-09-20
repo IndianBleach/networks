@@ -261,6 +261,15 @@ header_value *_headervalue_new_single(header_value_type type, const char *dptr_v
     return val;
 }
 
+header_value *_headervalue_new_tagvalue(const char *tagname, const char *tagvalue) {
+    header_value *val = (header_value *) malloc(sizeof(header_value));
+    val->type = HVAL_TAGVALUE;
+    val->tag_value.tag = tagname;
+    val->tag_value.value = tagvalue;
+
+    return val;
+}
+
 header_value *_headervalue_new_list() {
     header_value *val = (header_value *) malloc(sizeof(header_value));
     val->type = HVAL_LIST;
@@ -301,7 +310,7 @@ void parse(httprequest_buff *buff) {
         int base_len;
         if ((base_len = get_tag(&ctx, ':')) > 0) {
             char *tagname = substr(ctx_now(&ctx), base_len);
-            printf("__TAGNAME=%s\n", tagname);
+            //printf("__TAGNAME=%s\n", tagname);
 
             // ADD OLD BUILDER HEADER
             if (cur_header != NULL) {
@@ -364,10 +373,14 @@ void parse(httprequest_buff *buff) {
 
             ctx_move(&ctx, base_len);
 
-        } else if ((base_len = get_word(&ctx)) > 0) {
-            printf("---->get_word\n");
+        }
+        // tagvalue
+        else if ((base_len = get_word(&ctx)) > 0) {
+            //printf("---->get_word\n");
             // variants
             int local_len = 0;
+            char *_tagval_value = NULL;
+            char *_tagval_name = NULL;
 
             if ((local_len = getm_path(&ctx)) > 0) {
                 char *path = substr(ctx_now(&ctx), local_len);
@@ -387,6 +400,18 @@ void parse(httprequest_buff *buff) {
             } else if ((local_len = get_tag(&ctx, ':')) > 0) {
                 // break current iteration. top level parsing tag.
                 continue;
+            } else if ((local_len = get_tagvalue(&ctx, &(_tagval_value), &(_tagval_name))) > 0) {
+                // add TAGVALUE header
+                if (cur_list_deep > 0) {
+                    header_value *v1 = _headervalue_new_tagvalue(_tagval_name, _tagval_value);
+                    tree_add(cur_header->value.nested_list, cur_nested_list_node, &(v1));
+                } else if (cur_list_deep == 0) {
+                    cur_header->value.type = HVAL_TAGVALUE;
+                    cur_header->value.tag_value.tag = _tagval_name;
+                    cur_header->value.tag_value.value = _tagval_value;
+                }
+
+                ctx_move(&ctx, local_len);
             } else {
                 char *word = substr(ctx_now(&ctx), base_len);
 
@@ -419,11 +444,11 @@ void parse(httprequest_buff *buff) {
             ctx_move(&ctx, base_len);
 
         } else if ((base_len = get_number(&ctx)) > 0) {
-            printf("---->get_number\n");
+            //printf("---->get_number\n");
             int local;
             if ((local = get_ipaddr(&ctx)) > 0) {
                 char *ipaddr = substr(ctx_now(&ctx), local);
-                printf("IPADDR=%s\n", ipaddr);
+                //printf("IPADDR=%s\n", ipaddr);
                 // add header
                 if (cur_list_deep > 0) {
                     header_value *v1 = _headervalue_new_single(HVAL_IPADDR, ipaddr);
@@ -436,10 +461,10 @@ void parse(httprequest_buff *buff) {
                 ctx_move(&ctx, local);
 
             } else if ((local = get_version(&ctx)) > 0) {
-                printf("---->get_number.get_version\n");
+                //printf("---->get_number.get_version\n");
 
                 char *parse_value = substr(ctx_now(&ctx), local);
-                printf("---VAL=%s\n", parse_value);
+                //printf("---VAL=%s\n", parse_value);
                 // add header
                 if (cur_list_deep > 0) {
                     header_value *v1 = _headervalue_new_single(HVAL_VERSION, parse_value);
@@ -461,7 +486,7 @@ void parse(httprequest_buff *buff) {
                 }
 
                 char *parse_value = substr(ctx_now(&ctx), base_len);
-                printf("---VAL=%s\n", parse_value);
+                //printf("---VAL=%s\n", parse_value);
                 // add header
                 if (cur_list_deep > 0) {
                     header_value *v1 = _headervalue_new_single(parse_value_type, parse_value);
@@ -475,7 +500,7 @@ void parse(httprequest_buff *buff) {
             }
         }
 
-        printf("cur=%c\n", ctx.buff[ctx.cursor]);
+        //printf("cur=%c\n", ctx.buff[ctx.cursor]);
 
         // symbol parsing
         if (ctx.buff[ctx.cursor] == ',') {
@@ -531,6 +556,53 @@ void ctx_move(parse_context *ctx, int steps) {
         ctx->cursor = ctx->end;
     }
     //printf("ctx_move: %i -> %i\n", old, ctx->cursor);
+}
+
+// q=0.9 q="string" q=word
+int get_tagvalue(parse_context *ctx, char **__out_value, char **__out_tagname) {
+    char *buff = &ctx->buff[ctx->cursor];
+    int old_curs = ctx->cursor;
+    int end = ctx->end;
+    int i = 0;
+    int word_len = get_word(ctx);
+    if (word_len > 0) {
+        if (buff[word_len] == '=') {
+            int local_len;
+
+            ctx_move(ctx, word_len + 1);
+
+            if ((local_len = get_string(ctx)) > 0) {
+                char *tag = substr(buff, word_len);
+                char *val = substr(&buff[word_len + 1], local_len);
+                *__out_tagname = tag;
+                *__out_value = val;
+
+                ctx->cursor = old_curs; //moving back
+                return word_len + local_len + 1;
+            } else if ((local_len = get_number(ctx)) > 0) {
+                char *tag = substr(buff, word_len);
+                char *val = substr(&buff[word_len + 1], local_len);
+                *__out_tagname = tag;
+                *__out_value = val;
+
+                ctx->cursor = old_curs; //moving back
+
+                return word_len + local_len + 1;
+            } else if ((local_len = get_word(ctx)) > 0) {
+                char *tag = substr(buff, word_len);
+                char *val = substr(&buff[word_len + 1], local_len);
+                *__out_tagname = tag;
+                *__out_value = val;
+
+                ctx->cursor = old_curs; //moving back
+                return word_len + local_len + 1;
+            }
+        }
+    }
+
+    ctx->cursor = old_curs;
+
+    return -1;
 }
 
 // https://127.0.0.1:8013 http://127.0.0.1:8013

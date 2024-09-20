@@ -79,6 +79,7 @@ int get_querytag_value(parse_context *ctx);
 
 // spec
 int get_fulladdr(parse_context *ctx);
+int get_tagvalue(parse_context *ctx, char **__out_value, char **__out_tagname);
 
 // PRE-PARSING
 httpmethod extract_method(parse_context *ctx);
