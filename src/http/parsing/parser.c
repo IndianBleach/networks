@@ -11,31 +11,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// TOKEN
-httpreq_token *token_new(const char *value, httpreq_tokentype type) {
-    httpreq_token *ptr = (httpreq_token *) malloc(sizeof(httpreq_token));
-    ptr->value = value;
-    ptr->type = type;
-    return ptr;
-}
-
-httpreq_token *token_new_at(httpreq_tokentype type, char *buff, int len) {
-    httpreq_token *ptr = (httpreq_token *) malloc(sizeof(httpreq_token));
-
-    char *val = (char *) malloc(sizeof(char) * (len + 1));
-    val[len] = '\0';
-    strncpy(val, buff, len);
-
-    ptr->value = (const char *) val;
-    ptr->type = type;
-    return ptr;
-}
-
-void token_dump(httpreq_token *tk) {
-    printf("---token_dump:");
-    printf("val=%s type=%i\n", tk->value, tk->type);
-}
-
 // EXTRACT DATA
 httpmethod extract_method(parse_context *ctx) {
     int cur = ctx->cursor;
@@ -114,7 +89,6 @@ int extract_path(parse_context *ctx, httppath_segment **__out_pathhead) {
     return size;
 };
 
-// [1.0], [2.0]
 int extract_httpversion(parse_context *ctx, httpversion *__out_version) {
     int len = get_number(ctx);
     if (len == 3) {
@@ -211,7 +185,7 @@ int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
     return 1;
 }
 
-/////////////// parsing utils.
+// UTILS
 char *ctx_now(parse_context *ctx) { return &ctx->buff[ctx->cursor]; }
 
 unsigned int _get_list_deep(parse_context *ctx) {
@@ -243,16 +217,6 @@ unsigned int _get_list_deep(parse_context *ctx) {
     return list_deep_level;
 };
 
-int _nested_value_deep_len(parse_context *ctx) {}
-
-void _header_set_singval(httpheader *header, char *val) { header->value.single_value = val; }
-
-void _header_add_singval(httpheader *header, char **dptr_val, tree_node *nested_list) {
-    printf("_header_add_singval=%i\n", nested_list->child_nodes.size);
-    vector_pushback(&nested_list->child_nodes, dptr_val);
-    tree_dump(header->value.nested_list);
-}
-
 header_value *_headervalue_new_single(header_value_type type, const char *dptr_val) {
     header_value *val = (header_value *) malloc(sizeof(header_value));
     val->type = type;
@@ -280,31 +244,51 @@ header_value *_headervalue_new_list() {
     return val;
 }
 
-void parse(httprequest_buff *buff) {
+// PARSING - TOP LEVEL
+
+bool parse_request(httprequest_buff *buff, httprequest *__outreq) {
     parse_context ctx;
     ctx.buff = buff->ptr;
     ctx.cursor = 0;
-    ctx.end = strlen(buff->ptr);
+    ctx.end = strlen(ctx.buff);
 
-    printf("PARSING: %s\n", buff->ptr);
+    // method path qparams httpv
+    httpmethod m = extract_method(&ctx);
+    printf("METHOD=%i\n", m);
 
-    //printf("parse: cursr=%i end=%i\n", ctx.cursor, ctx.end);
+    ctx_move(&ctx, 1);
+    printf("CUR=%c\n", ctx.buff[ctx.cursor]);
 
-    vector outv;
-    vector_init(&outv, 10, sizeof(httpheader *));
+    httppath_segment *path = (httppath_segment *) malloc(sizeof(httppath_segment));
+    int p = extract_path(&ctx, &(path));
+    printf("PATH=%s\n", path->value);
+
+    ctx.cursor += 6; // skip ' HTTP/'
+    printf("CUR=%c step=%i\n", ctx.buff[ctx.cursor], p);
+
+    httpversion vers;
+    extract_httpversion(&ctx, &vers);
+    printf("VERS=%i.%i\n", vers.seg1, vers.seg2);
+
+    return false;
+}
+
+bool parse_headers(parse_context *ctx, vector *__outv) {
+    printf("PARSING: %s\n", &ctx->buff[ctx->cursor]);
+
+    vector_init(__outv, 10, sizeof(httpheader *));
 
     // fix?
     bool value_open = false;
     header_value_type value_type = -1;
     bool tag_open = false;
 
-
     // CUR_HEADER
     httpheader *cur_header = NULL;
     unsigned int cur_list_deep = 0;
     tree_node *cur_nested_list_node = NULL;
 
-    while (ctx.cursor < ctx.end) {
+    while (ctx->cursor < ctx->end) {
         // parsing deep enums by priority
         //printf("___CURS=%i\n", ctx.cursor);
         int base_len;
@@ -314,9 +298,9 @@ void parse(httprequest_buff *buff) {
 
             // ADD OLD BUILDER HEADER
             if (cur_header != NULL) {
-                printf("[added] %p\n", cur_header);
+                //printf("[added] %p\n", cur_header);
                 //httpheader_dump(cur_header);
-                vector_pushback(&outv, &(cur_header));
+                vector_pushback(__outv, &(cur_header));
             }
 
 
@@ -373,11 +357,7 @@ void parse(httprequest_buff *buff) {
 
             ctx_move(&ctx, base_len);
 
-        }
-        // tagvalue
-        else if ((base_len = get_word(&ctx)) > 0) {
-            //printf("---->get_word\n");
-            // variants
+        } else if ((base_len = get_word(&ctx)) > 0) {
             int local_len = 0;
             char *_tagval_value = NULL;
             char *_tagval_name = NULL;
@@ -397,9 +377,6 @@ void parse(httprequest_buff *buff) {
                 // moving
                 ctx_move(&ctx, local_len);
 
-            } else if ((local_len = get_tag(&ctx, ':')) > 0) {
-                // break current iteration. top level parsing tag.
-                continue;
             } else if ((local_len = get_tagvalue(&ctx, &(_tagval_value), &(_tagval_name))) > 0) {
                 // add TAGVALUE header
                 if (cur_list_deep > 0) {
@@ -412,6 +389,9 @@ void parse(httprequest_buff *buff) {
                 }
 
                 ctx_move(&ctx, local_len);
+            } else if ((local_len = get_tag(&ctx, ':')) > 0) {
+                // break current iteration. top level parsing tag.
+                continue;
             } else {
                 char *word = substr(ctx_now(&ctx), base_len);
 
@@ -500,12 +480,10 @@ void parse(httprequest_buff *buff) {
             }
         }
 
-        //printf("cur=%c\n", ctx.buff[ctx.cursor]);
-
         // symbol parsing
-        if (ctx.buff[ctx.cursor] == ',') {
+        if (ctx->buff[ctx->cursor] == ',') {
             //pass;
-        } else if (ctx.buff[ctx.cursor] == ';') {
+        } else if (ctx->buff[ctx->cursor] == ';') {
             printf("SEMICOL\n");
             // ADD NEW TOP LEVEL LIST IN TREE
             // new header (LIST) add to top level (to head child nodes).
@@ -518,26 +496,28 @@ void parse(httprequest_buff *buff) {
         // longWord
         // sp
 
-        ctx.cursor++;
+        ctx->cursor++;
     }
 
     // add last element
     if (cur_header != NULL) {
         printf("[added2] %p\n", cur_header);
         //httpheader_dump(cur_header);
-        vector_pushback(&outv, &(cur_header));
+        vector_pushback(__outv, &(cur_header));
     }
 
 
     // for vec
     // -> dump header
 
-    for (size_t i = 0; i < outv.size; i++) {
-        httpheader_dump(*(httpheader **) vector_at(&outv, i));
+    for (size_t i = 0; i < __outv->size; i++) {
+        httpheader_dump(*(httpheader **) vector_at(__outv, i));
     }
 
     printf("END\n");
 }
+
+// PARSING - DEEP LEVEL
 
 char ctx_at(parse_context *ctx, int pos) {
     if (pos > ctx->end) {

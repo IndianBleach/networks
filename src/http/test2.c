@@ -125,7 +125,7 @@ int main() {
     //char *t = "Referer: https://127.0.0.1:8013\nHost: 127.0.0.1:8013\nAccept-Encoding: gzip, deflate, br, "
     //          "zstd\nAccept: image/avif,image/webp,image/apng,image/svg+xml\nsec-ch-ua-platform: \"Windows\"";
 
-    char *t = "Referer: qwd=wordded";
+    char *t = "GET /user HTTP/1.1";
 
     httprequest_buff buff;
     buff.ptr = t;
@@ -136,8 +136,8 @@ int main() {
     ctx.cursor = 0;
     ctx.end = strlen(t);
 
-    parse(&buff);
-
+    httprequest req;
+    parse_request(&buff, &req);
 
     /*
         vector qparams;
