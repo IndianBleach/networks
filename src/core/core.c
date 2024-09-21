@@ -480,7 +480,7 @@ void hashmap_clear(hashmap *map) {
     hashmap_entry *buff = (hashmap_entry *) map->iterator.begin;
     for (size_t i = 0; i < map->iterator.len; i++) {
         if (buff[i].flags != 0 && buff[i].key != NULL) {
-            printf("free: %s\n", buff[i].key);
+            //printf("free: %s\n", buff[i].key);
             free(buff[i].key);
             free(buff[i].value);
             buff[i].flags = 0;
@@ -509,13 +509,13 @@ void hashmap_dump(hashmap *map) {
 }
 
 void hashmap_dstr(hashmap *map) {
-    printf("hashmap_dstr\n");
+    //printf("hashmap_dstr\n");
 
     hashmap_entry *buff = (hashmap_entry *) map->iterator.begin;
 
     for (size_t i = 0; i < map->iterator.len; i++) {
         if (buff[i].flags != 0 && buff[i].key != NULL) {
-            printf("__hashmap_dstr[%s]\n", buff[i].key);
+            //printf("__hashmap_dstr[%s]\n", buff[i].key);
             free(buff[i].value);
             free(buff[i].key);
         }

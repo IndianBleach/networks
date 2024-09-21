@@ -33,12 +33,12 @@ void requestbuff_init(httprequest_buff *buff, unsigned int capacity) {
     buff->ptr = (char *) malloc(sizeof(char) * (capacity + 1));
 }
 
-void queryparam_init(queryparam *param, queryparam_value_type type, char *tag_name, char *tag_value) {
+void queryparam_init(queryparam *param, queryparam_value_type type, char **tag_name, char **tag_value) {
     param->type = type;
     if (type == QUERY_VALUE) {
-        param->tag_name = tag_name;
-        param->value.value = tag_value;
-        printf("sss=%s\n", param->value.value);
+        param->tag_name = *tag_name;
+        param->value.value = *tag_value;
+        //printf("sss=%s\n", param->value.value);
     } else if (type == QUERY_VALUE_LIST) {
         param->value.value = NULL;
         vector_init(&param->value.vec, 10, sizeof(char *));
@@ -134,14 +134,81 @@ void httpheader_dump(httpheader *t) {
     }
 
     if (t->value.type == HVAL_TAGVALUE) {
-        printf("DUMP.httpheader: name=%s type=TAGVAL [tag=%s val=%s]\n", t->name, t->value.tag_value.tag,
+        printf("[HttpHeader]: name=%s type=TAGVAL [tag=%s val=%s]\n", t->name, t->value.tag_value.tag,
                t->value.tag_value.value);
     } else if (t->value.type == HVAL_LIST) {
-        printf("DUMP.httpheader: name=%s type=NEST_TREE: %p\n", t->name, t->value.nested_list);
+        printf("[HttpHeader]: name=%s type=NEST_TREE: %p\n", t->name, t->value.nested_list);
         _dump_nested_list(t->value.nested_list);
     } else if (t->value.type == UNSET) {
-        printf("DUMP.httpheader: name=%s type=UNSET val=%s\n", t->name);
+        printf("[HttpHeader]: name=%s type=UNSET val=%s\n", t->name);
     } else {
-        printf("DUMP.httpheader: name=%s type=%i val=%s\n", t->name, t->value.type, t->value.single_value);
+        printf("[HttpHeader]: name=%s type=%i val=%s\n", t->name, t->value.type, t->value.single_value);
     }
 }
+
+void _dump_queryparam(queryparam *t) {
+    if (t != NULL) {
+        if (t->type == QUERY_VALUE) {
+            printf("[QueryParam]: %s=%s\n", t->tag_name, t->value.value);
+        } else if (t->type == QUERY_VALUE_LIST) {
+            printf("[QueryParam]: %s=", t->tag_name);
+            for (size_t i = 0; i < t->value.vec.size; i++) {
+                char *curv = *(char **) vector_at(&t->value.vec, i);
+                printf("%s,", curv);
+            }
+            printf("\n");
+        }
+    }
+}
+
+void httprequest_dump(httprequest *req) {
+    if (req != NULL) {
+        char *m;
+        switch (req->method) {
+            case HTTP_POST:
+                m = "POST";
+                break;
+            case HTTP_DELETE:
+                m = "DELETE";
+                break;
+            case HTTP_PUT:
+                m = "PUT";
+                break;
+            case HTTP_GET:
+                m = "GET";
+                break;
+            case HTTP_METHOD_UNDF:
+                m = "UNDF";
+                break;
+
+            default:
+                break;
+        }
+
+
+        printf("DUMP.request:\nPath=%s\nMethod=%s\nVersion: HTTP/%i.%i\n", req->path->value, m, req->version.seg1,
+               req->version.seg2);
+        for (size_t i = 0; i < req->httpheaders->size; i++) {
+            httpheader_dump(*(httpheader **) vector_at(req->httpheaders, i));
+        }
+
+        for (size_t i = 0; i < req->queryparams->size; i++) {
+            _dump_queryparam(*(queryparam **) vector_at(req->queryparams, i));
+        }
+
+        /*
+            Path
+            Method
+            Version
+            --Headers
+            --QueryParams
+        */
+    }
+}
+
+//void _dstr_header_value(header_value *v) { if (v.) }
+
+// _dstr_path
+// _dstr_headers
+// query_params
+//

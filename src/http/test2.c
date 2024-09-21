@@ -124,8 +124,12 @@ int main() {
     //
     //char *t = "Referer: https://127.0.0.1:8013\nHost: 127.0.0.1:8013\nAccept-Encoding: gzip, deflate, br, "
     //          "zstd\nAccept: image/avif,image/webp,image/apng,image/svg+xml\nsec-ch-ua-platform: \"Windows\"";
+    //GET /user HTTP/1.1
 
-    char *t = "GET /user HTTP/1.1";
+    char *t =
+        "GET /user?name=john&age=23 HTTP/1.1\nReferer: https://127.0.0.1:8013\nHost: "
+        "127.0.0.1:8013\nAccept-Encoding: gzip, "
+        "deflate; br, time\nAccept: image/avif,image/webp,image/apng,image/svg+xml\nsec-ch-ua-platform: \"Windows\" ";
 
     httprequest_buff buff;
     buff.ptr = t;

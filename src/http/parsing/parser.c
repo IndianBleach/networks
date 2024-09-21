@@ -49,6 +49,7 @@ int extract_path(parse_context *ctx, httppath_segment **__out_pathhead) {
     int cur = ctx->cursor;
     int end = ctx->end;
     char *begin = ctx->buff;
+    //printf("PATH BEG=%i\n", cur);
     int size = 0;
     *__out_pathhead = NULL;
     httppath_segment *tail;
@@ -107,6 +108,8 @@ int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
     if (!__out_vec_qparams)
         return -1;
 
+    vector_init(__out_vec_qparams, 10, sizeof(queryparam *));
+    int old_cur = ctx->cursor;
     int cur = ctx->cursor;
     int end = ctx->end;
     //int size = 0;
@@ -120,8 +123,6 @@ int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
     int tag_len = 0;
     int val_len = 0;
 
-    printf("parsing=%s\n", ctx->buff);
-
     // parsing
     void *iter_begin = __out_vec_qparams->iterator.begin;
 
@@ -132,12 +133,12 @@ int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
     while (cur < end) {
         if ((tag_len = get_tag(ctx, '=')) > 0) {
             char *tag_name = cstr_new(tag_len, &ctx->buff[ctx->cursor]);
+
             ctx_move(ctx, tag_len + 1); // +1 for :
             cur += tag_len;
 
             if ((val_len = get_querytag_value(ctx)) > 0) {
                 char *tag_value = cstr_new(val_len, &ctx->buff[ctx->cursor]);
-
                 // check if TAG EXISTS
                 // get the value, add new node. (its LIST_VALUE - ARRAY)
                 queryparam **find = (queryparam **) hashmap_get(&map, tag_name);
@@ -160,13 +161,10 @@ int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
                 } else {
                     // add to vector
                     // add to map
-                    printf("node.single: [%s]=%s\n", tag_name, tag_value);
                     queryparam *qp = malloc(sizeof(queryparam));
-                    queryparam_init(qp, QUERY_VALUE, tag_name, tag_value);
+                    queryparam_init(qp, QUERY_VALUE, &(tag_name), &(tag_value));
 
-                    hashmap_add(&map, tag_name, &(qp)); // REF ON BUFFER
-
-
+                    hashmap_add(&map, tag_name, &(qp));        // REF ON BUFFER
                     vector_pushback(__out_vec_qparams, &(qp)); // add ref on query_param
                 }
 
@@ -176,13 +174,19 @@ int extract_queryparams(parse_context *ctx, vector *__out_vec_qparams) {
             }
         }
 
+        if (begin[cur] == ' ') {
+            break;
+        }
+
         ctx_move(ctx, 1);
         cur++;
     }
 
     hashmap_dstr(&map);
 
-    return 1;
+    ctx->cursor = old_cur;
+
+    return cur - old_cur;
 }
 
 // UTILS
@@ -253,28 +257,45 @@ bool parse_request(httprequest_buff *buff, httprequest *__outreq) {
     ctx.end = strlen(ctx.buff);
 
     // method path qparams httpv
+
     httpmethod m = extract_method(&ctx);
-    printf("METHOD=%i\n", m);
+    __outreq->method = m;
 
     ctx_move(&ctx, 1);
-    printf("CUR=%c\n", ctx.buff[ctx.cursor]);
 
-    httppath_segment *path = (httppath_segment *) malloc(sizeof(httppath_segment));
+    httppath_segment *path = NULL;
     int p = extract_path(&ctx, &(path));
-    printf("PATH=%s\n", path->value);
+    __outreq->path = path;
 
-    ctx.cursor += 6; // skip ' HTTP/'
-    printf("CUR=%c step=%i\n", ctx.buff[ctx.cursor], p);
+    ctx.cursor += 1;
+
+    vector *query_params = (vector *) malloc(sizeof(vector));
+    int qlen = extract_queryparams(&ctx, query_params);
+
+    ctx.cursor += qlen + 1; // skip query params
+
+    ctx.cursor += 5; // skip ' HTTP/'
 
     httpversion vers;
     extract_httpversion(&ctx, &vers);
-    printf("VERS=%i.%i\n", vers.seg1, vers.seg2);
+    __outreq->version = vers;
+    ctx.cursor += 4; // skip 1.2...
+
+    vector *vheaders = (vector *) malloc(sizeof(vector));
+    parse_headers(&ctx, vheaders);
+
+    __outreq->httpheaders = vheaders;
+    __outreq->queryparams = query_params;
+
+    httprequest_dump(__outreq);
+
+    httprequest_dstr(__outreq);
 
     return false;
 }
 
 bool parse_headers(parse_context *ctx, vector *__outv) {
-    printf("PARSING: %s\n", &ctx->buff[ctx->cursor]);
+    //printf("PARSING: %s\n", &ctx->buff[ctx->cursor]);
 
     vector_init(__outv, 10, sizeof(httpheader *));
 
@@ -290,10 +311,10 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
 
     while (ctx->cursor < ctx->end) {
         // parsing deep enums by priority
-        //printf("___CURS=%i\n", ctx.cursor);
+        //printf("___CURS=%i\n", ctx->cursor);
         int base_len;
-        if ((base_len = get_tag(&ctx, ':')) > 0) {
-            char *tagname = substr(ctx_now(&ctx), base_len);
+        if ((base_len = get_tag(ctx, ':')) > 0) {
+            char *tagname = substr(ctx_now(ctx), base_len);
             //printf("__TAGNAME=%s\n", tagname);
 
             // ADD OLD BUILDER HEADER
@@ -303,16 +324,16 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
                 vector_pushback(__outv, &(cur_header));
             }
 
-
             tag_open = true;
             value_open = true;
 
-            ctx_move(&ctx, base_len + 1); // tag + :
+            ctx_move(ctx, base_len + 1); // tag + :
 
-            cur_list_deep = _get_list_deep(&ctx);
+            cur_list_deep = _get_list_deep(ctx);
             cur_header = httpheader_new(value_type);
             cur_header->name = tagname;
             if (cur_list_deep == 0) {
+                printf("REF=%p\n", cur_header);
             }
             if (cur_list_deep == 1) {
                 tree *nested = (tree *) malloc(sizeof(tree));
@@ -335,6 +356,8 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
                 cur_nested_list_node = n2->head;
                 tree_add(cur_header->value.nested_list, cur_header->value.nested_list->head,
                          &(v2)); // add 2 level top top level
+
+                //free(v2);
                 //printf("d1=%p d2=%p\n", cur_header->value.nested_list->head, cur_nested_list_node);
             }
 
@@ -343,8 +366,8 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
 
         //printf("base_len=%i curs=%i\n", base_len, ctx.cursor);
 
-        if ((base_len = get_fulladdr(&ctx)) > 0) {
-            char *parse_value = substr(ctx_now(&ctx), base_len);
+        if ((base_len = get_fulladdr(ctx)) > 0) {
+            char *parse_value = substr(ctx_now(ctx), base_len);
 
             // add header
             if (cur_list_deep > 0) {
@@ -355,15 +378,15 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
                 cur_header->value.single_value = parse_value;
             }
 
-            ctx_move(&ctx, base_len);
+            ctx_move(ctx, base_len);
 
-        } else if ((base_len = get_word(&ctx)) > 0) {
+        } else if ((base_len = get_word(ctx)) > 0) {
             int local_len = 0;
             char *_tagval_value = NULL;
             char *_tagval_name = NULL;
 
-            if ((local_len = getm_path(&ctx)) > 0) {
-                char *path = substr(ctx_now(&ctx), local_len);
+            if ((local_len = getm_path(ctx)) > 0) {
+                char *path = substr(ctx_now(ctx), local_len);
 
                 // add header
                 if (cur_list_deep > 0) {
@@ -375,9 +398,9 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
                 }
 
                 // moving
-                ctx_move(&ctx, local_len);
+                ctx_move(ctx, local_len);
 
-            } else if ((local_len = get_tagvalue(&ctx, &(_tagval_value), &(_tagval_name))) > 0) {
+            } else if ((local_len = get_tagvalue(ctx, &(_tagval_value), &(_tagval_name))) > 0) {
                 // add TAGVALUE header
                 if (cur_list_deep > 0) {
                     header_value *v1 = _headervalue_new_tagvalue(_tagval_name, _tagval_value);
@@ -388,12 +411,12 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
                     cur_header->value.tag_value.value = _tagval_value;
                 }
 
-                ctx_move(&ctx, local_len);
-            } else if ((local_len = get_tag(&ctx, ':')) > 0) {
+                ctx_move(ctx, local_len);
+            } else if ((local_len = get_tag(ctx, ':')) > 0) {
                 // break current iteration. top level parsing tag.
                 continue;
             } else {
-                char *word = substr(ctx_now(&ctx), base_len);
+                char *word = substr(ctx_now(ctx), base_len);
 
                 // add header
                 if (cur_list_deep > 0) {
@@ -404,13 +427,13 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
                     cur_header->value.single_value = word;
                 }
 
-                ctx_move(&ctx, base_len);
+                ctx_move(ctx, base_len);
                 //httpheader_dump(cur_header);
             }
 
             // getLongWord
-        } else if ((base_len = get_string(&ctx)) > 0) {
-            char *string = substr(ctx_now(&ctx), base_len);
+        } else if ((base_len = get_string(ctx)) > 0) {
+            char *string = substr(ctx_now(ctx), base_len);
 
             // add header
             if (cur_list_deep > 0) {
@@ -421,13 +444,13 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
                 cur_header->value.single_value = string;
             }
             // moving
-            ctx_move(&ctx, base_len);
+            ctx_move(ctx, base_len);
 
-        } else if ((base_len = get_number(&ctx)) > 0) {
+        } else if ((base_len = get_number(ctx)) > 0) {
             //printf("---->get_number\n");
             int local;
-            if ((local = get_ipaddr(&ctx)) > 0) {
-                char *ipaddr = substr(ctx_now(&ctx), local);
+            if ((local = get_ipaddr(ctx)) > 0) {
+                char *ipaddr = substr(ctx_now(ctx), local);
                 //printf("IPADDR=%s\n", ipaddr);
                 // add header
                 if (cur_list_deep > 0) {
@@ -438,12 +461,12 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
                     cur_header->value.single_value = ipaddr;
                 }
                 // moving
-                ctx_move(&ctx, local);
+                ctx_move(ctx, local);
 
-            } else if ((local = get_version(&ctx)) > 0) {
+            } else if ((local = get_version(ctx)) > 0) {
                 //printf("---->get_number.get_version\n");
 
-                char *parse_value = substr(ctx_now(&ctx), local);
+                char *parse_value = substr(ctx_now(ctx), local);
                 //printf("---VAL=%s\n", parse_value);
                 // add header
                 if (cur_list_deep > 0) {
@@ -455,17 +478,17 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
                 }
 
                 // moving
-                ctx_move(&ctx, local);
+                ctx_move(ctx, local);
 
             } else {
                 header_value_type parse_value_type;
-                if (is_float(&ctx, base_len) > 0) {
+                if (is_float(ctx, base_len) > 0) {
                     parse_value_type = HVAL_FLOAT;
                 } else {
                     parse_value_type = HVAL_INT;
                 }
 
-                char *parse_value = substr(ctx_now(&ctx), base_len);
+                char *parse_value = substr(ctx_now(ctx), base_len);
                 //printf("---VAL=%s\n", parse_value);
                 // add header
                 if (cur_list_deep > 0) {
@@ -476,7 +499,7 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
                     cur_header->value.single_value = parse_value;
                 }
 
-                ctx_move(&ctx, base_len);
+                ctx_move(ctx, base_len);
             }
         }
 
@@ -484,7 +507,7 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
         if (ctx->buff[ctx->cursor] == ',') {
             //pass;
         } else if (ctx->buff[ctx->cursor] == ';') {
-            printf("SEMICOL\n");
+            //printf("SEMICOL\n");
             // ADD NEW TOP LEVEL LIST IN TREE
             // new header (LIST) add to top level (to head child nodes).
             // cur_actual_list = newlist
@@ -501,20 +524,161 @@ bool parse_headers(parse_context *ctx, vector *__outv) {
 
     // add last element
     if (cur_header != NULL) {
-        printf("[added2] %p\n", cur_header);
+        //printf("[added2] %p\n", cur_header);
         //httpheader_dump(cur_header);
         vector_pushback(__outv, &(cur_header));
     }
 
+    //printf("END\n");
+    return true;
+}
 
-    // for vec
-    // -> dump header
+// CLEARING
+void httprequest_dstr(httprequest *req) {
+    printf("httprequest_dstr\n");
+    assert(req != NULL);
+    _dstr_path(req->path);
+    _dstr_query_params(req->queryparams);
+    free(req->queryparams);
+    _dstr_headers(req->httpheaders);
+    free(req->httpheaders);
+}
 
-    for (size_t i = 0; i < __outv->size; i++) {
-        httpheader_dump(*(httpheader **) vector_at(__outv, i));
+void _dstr_path(httppath_segment *head) {
+    httppath_segment *seg = head;
+    while (seg != NULL) {
+        printf("seg: %p %p %p\n", seg, seg->next, seg->value);
+        httppath_segment *next = seg->next;
+        printf("free.[path]: %s\n", seg->value);
+        free(seg->value);
+        free(seg);
+        seg = next;
+    }
+}
+
+void _dstr_query_params(vector *v) {
+    for (size_t i = 0; i < v->size; i++) {
+        queryparam *param = *(queryparam **) vector_at(v, i);
+
+        if (param->type == QUERY_VALUE) {
+            printf("free.[QueryParam]: tag=%s val=%s\n", param->tag_name, param->value.value);
+            free(param->tag_name);
+            free(param->value.value);
+        } else if (param->type == QUERY_VALUE_LIST) {
+            free(param->tag_name);
+            for (size_t k = 0; k < param->value.vec.size; k++) {
+                char **st = vector_at(&param->value.vec, k);
+                printf("free.[QueryParam]: tag=%s val=%s\n", param->tag_name, *st);
+                if (st != NULL) {
+                    free(*st);
+                }
+
+                //free(st);
+                printf("vec=size=%i\n", param->value.vec.size);
+                vector_dstr(&param->value.vec);
+            }
+        }
+
+        free(param);
     }
 
-    printf("END\n");
+    vector_dstr(v);
+}
+
+void _dstr_headers(vector *v) {
+    if (v != NULL) {
+        for (size_t i = 0; i < v->size; i++) {
+            httpheader *header = *(httpheader **) vector_at(v, i);
+            switch (header->value.type) {
+                case HVAL_WORD:
+                case HVAL_VERSION:
+                case HVAL_FLOAT:
+                case HVAL_INT:
+                case HVAL_IPADDR:
+                case HVAL_PATH:
+                case HVAL_SERVER_ADDR:
+                case HVAL_STRING:
+                    printf("free.[HttpHeader(SINGLE)] header=%s val=%s\n", header->name, header->value.single_value);
+                    free(header->name);
+                    free(header->value.single_value);
+                    free(header);
+                    break;
+
+                case HVAL_TAGVALUE:
+                    printf("free.[HttpHeader(TAGVALUE)] header=%s (tag=%s val=%s)\n", header->name,
+                           header->value.tag_value.tag, header->value.tag_value.value);
+                    free(header->name);
+                    free(header->value.tag_value.tag);
+                    free(header->value.tag_value.value);
+                    free(header);
+                    break;
+
+                case HVAL_LIST:
+                    _dstr_header_value_deep(header->value.nested_list);
+                    free(header->name);
+                    free(header);
+                    break;
+                default:
+                    printf("DEFA\n");
+                    printf("REF__=%p -> \n", header);
+                    //free();
+                    break;
+            }
+        }
+
+        vector_dstr(v);
+    }
+}
+
+void _dstr_header_value_deep(tree *tr) {
+    queue q;
+    queue_init(&q, sizeof(tree_node *));
+    queue_push(&q, &(tr->head));
+
+    while (!queue_empty(&q)) {
+        tree_node **dptr = (tree_node **) queue_pop(&q);
+        tree_node *head = NULL;
+        if (dptr != NULL) {
+            head = *dptr;
+            //printf("dptr.free=%p\n", dptr);
+            free(dptr);
+        } else
+            break;
+
+        if (head->value != NULL) {
+            header_value *val = *(header_value **) head->value;
+
+            if (val->type == HVAL_LIST) {
+                _dstr_header_value_deep(val->nested_list);
+                //tree_dstr(val->nested_list);
+            } else if (val->type != HVAL_TAGVALUE) {
+                printf("free.[cur_head] type=%i VAL=%s\n", val->type, val->single_value);
+                free(val->single_value);
+            } else if (val->type == HVAL_TAGVALUE) {
+                printf("free.[cur_head] type=%i (TAGVALUE)\n", val->type);
+                free(val->tag_value.tag);
+                free(val->tag_value.value);
+            }
+
+            free(val);
+        }
+
+        for (size_t i = 0; i < head->child_nodes.size; i++) {
+            tree_node **find = (tree_node **) vector_at(&head->child_nodes, i);
+            if (find != NULL) {
+                queue_push(&q, find); //
+            }
+        }
+
+        //printf("free.head=%p\n", head);
+        free(head->value);
+        vector_dstr(&head->child_nodes);
+        free(head);
+    }
+
+    printf("free.tree(global)\n");
+    free(tr);
+    queue_clear(&q);
 }
 
 // PARSING - DEEP LEVEL
@@ -602,6 +766,8 @@ int get_fulladdr(parse_context *ctx) {
             free(val);
             return -1;
         }
+
+        free(val);
 
         if (buff[word_len] == ':' && buff[word_len + 1] == '/' && buff[word_len + 2] == '/') {
             ctx_move(ctx, word_len + 3);

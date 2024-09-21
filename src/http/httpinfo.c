@@ -13,7 +13,7 @@ httppath_segment *pathsegment_new(int value_size, char *value) {
     seg->value = OBJ_NEWC(char, (value_size + 1));
     seg->value[value_size] = '\0';
     //seg->value = strdup(value);
-
+    printf("pathsegment_new: size=%i new=%s\n", value_size, value);
     //printf("pathsegment_new: value=%s size=%i ptr=%p\n", value, value_size, seg->value);
     strncpy(seg->value, value, value_size);
 

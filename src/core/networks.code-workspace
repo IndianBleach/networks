@@ -30,7 +30,10 @@
 			"string.h": "c",
 			"stdbool.h": "c",
 			"stdio.h": "c",
-			"compare": "c"
+			"compare": "c",
+			"request.h": "c",
+			"coredef.h": "c",
+			"stdlib.h": "c"
 		}
 	}
 }

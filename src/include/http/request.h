@@ -73,7 +73,7 @@ typedef struct queryparam {
 
 //queryparam *queryparam_new(queryparam_value_type type, int value_size, int tag_name_size);
 //char *queryparam_get_value(queryparam *qp);
-void queryparam_init(queryparam *param, queryparam_value_type type, char *tag_name, char *tag_value);
+void queryparam_init(queryparam *param, queryparam_value_type type, char **tag_name, char **tag_value);
 void queryparam_switch_on_list(queryparam *param, queryparam_value_type type);
 
 /////////// REQUEST
@@ -82,8 +82,11 @@ typedef struct httprequest {
     vector *queryparams;
     httppath_segment *path;
     httpmethod method;
-    nt_addrstr host_addr;
+    httpversion version;
     const char *body;
 } httprequest;
+
+void httprequest_dump(httprequest *req);
+void httprequest_dstr(httprequest *req);
 
 #endif
