@@ -1,0 +1,39 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		}
+	],
+	"settings": {
+		"makefile.launchConfigurations": [
+			{
+				"cwd": "/home/gcreep",
+				"binaryPath": "/home/gcreep/src.out",
+				"binaryArgs": []
+			},
+			{
+				"cwd": "/home/gcreep",
+				"binaryPath": "/home/gcreep/a.out",
+				"binaryArgs": []
+			},
+			{
+				"cwd": "/home/gcreep/github.local/networks",
+				"binaryPath": "/home/gcreep/github.local/networks/src.out",
+				"binaryArgs": []
+			}
+		],
+		"makefile.makefilePath": "Makefile",
+		"files.associations": {
+			"assert.h": "c",
+			"type_traits": "c",
+			"httpinfo.h": "c",
+			"string.h": "c",
+			"stdbool.h": "c",
+			"stdio.h": "c",
+			"compare": "c",
+			"request.h": "c",
+			"coredef.h": "c",
+			"stdlib.h": "c"
+		}
+	}
+}
