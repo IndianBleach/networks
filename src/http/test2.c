@@ -118,7 +118,7 @@ Accept-Language: ru,en;q=0.9
 */
 
 
-int main() {
+int main2() {
     printf("test2.start\n");
 
     //

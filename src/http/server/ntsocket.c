@@ -141,8 +141,8 @@ void ntsock_io_run(ntnode_config *config) {
     char rbuff[1024];
 
     // fix
-    httprequest_buff reqbuff;
-    requestbuff_init(&reqbuff, 1024 * 2);
+    //httprequest_buff reqbuff;
+    //requestbuff_init(&reqbuff, 1024);
 
     // add event (listener (server))
     epoll_add(epoll_fd, socket_fd, EPOLLIN);
