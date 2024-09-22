@@ -33,7 +33,8 @@
 			"compare": "c",
 			"request.h": "c",
 			"coredef.h": "c",
-			"stdlib.h": "c"
+			"stdlib.h": "c",
+			"stdarg.h": "c"
 		}
 	}
 }

@@ -1,4 +1,5 @@
 {
     "editor.formatOnSave": true,
-    "clang-format.executable": "/home/gcreep/github.local/networks/.clang-format"
+    "clang-format.executable": "/home/gcreep/github.local/networks/.clang-format",
+    "makefile.makePath": "Makefile"
 }

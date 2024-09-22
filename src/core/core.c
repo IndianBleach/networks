@@ -2,6 +2,7 @@
 #include "../include/core/core.h"
 
 #include <assert.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdio.h> // Для printf
@@ -945,13 +946,6 @@ bool tree_dfs_contains(tree *tr, __basic_comparator, void *__value) {
     return res;
 }
 
-// itoa
-// reverse
-
-// bfs(t, compr)
-// dfs(t, compr)
-
-
 int compr_ptrval_int(void *dptra, void *dptrb) {
     int *f1 = (int *) dptra;
     int *f2 = (int *) dptrb;
@@ -961,33 +955,202 @@ int compr_ptrval_int(void *dptra, void *dptrb) {
     return -1;
 }
 
+// :::::::::: STRING
+
+typedef struct string {
+    basic_iterator iterator;
+    size_t len;
+} string;
+
+void _string_init(string *s, size_t cap) {
+    assert(cap > 0);
+    char *buff = (char *) malloc(cap + 1);
+    buff[cap] = '\0';
+    iter_init(&s->iterator, buff, sizeof(char), cap);
+    s->len = 0;
+};
+
+void _string_init2(string *s, size_t cap, const char *val) {
+    assert(cap > 0);
+    char *buff = (char *) malloc(cap + 1);
+    buff[cap] = '\0';
+    iter_init(&s->iterator, buff, sizeof(char), cap);
+
+    size_t sz = strlen(val);
+
+    strncpy(s->iterator.begin, val, sz);
+    s->len = sz;
+};
+
+string *_string_new_empty(size_t cap) {
+    string *s = (string *) malloc(sizeof(string));
+    _string_init(s, cap);
+    return s;
+}
+
+string *_string_new(size_t cap, const char *val) {
+    string *s = (string *) malloc(sizeof(string));
+    _string_init2(s, cap, val);
+    return s;
+}
+
+const char *str_cstr(string *s) { return (const char *) s->iterator.begin; }
+
+void str_dstr(string *str) { free(str->iterator.begin); }
+
+// generic
+// append, sub, dup, split, new
+
+
+string *_string_sub(string *s, int from, int len) {
+    int sz = len;
+    if (from + len > s->len)
+        sz = s->len;
+
+    assert(from < s->len);
+
+    string *v = _string_new_empty(sz);
+    strncpy(v->iterator.begin, &s->iterator.begin[from], sz);
+
+    return v;
+}
+
+string *_string_sub_ptr(const char *s, int from, int len) {
+    int sz = len;
+
+    int source_sz = strlen(s);
+
+    if (from + len > source_sz)
+        sz = source_sz;
+
+    assert(from < source_sz);
+
+    string *v = _string_new_empty(sz);
+    strncpy(v->iterator.begin, &s[from], sz);
+
+    return v;
+};
+
+#define String_sub(_str, from, len)                                                                                    \
+    _Generic((_str),\ 
+    string *: _string_sub, \                                                                                             
+    char *: _string_sub_ptr \
+)(_str, from, len)
+
+// generic
+//void str_append(string *str, )
+
 /*
+    string
+    str_sub()
+    str_append
+    str_split()
+    str_dstr
+    str_rev
+    str_copy(str, to)
+    str_dup(str)
+    str_clear
+
+    str_def
+    lrg_l
+    str_lr
+    str_s
+
+    mstr_
+
+*/
+
+
+void _string_append(string *s, const char *val, size_t len) {
+    if (s->len + len >= s->iterator.len) {
+        printf("[_string_append] ensure cap..\n");
+    } else {
+        strncpy(&s->iterator.begin[s->len], val, len);
+        s->len += len;
+    }
+}
+
+void _string_append_s(string *s, string *append) {
+    _string_append(s, (const char *) append->iterator.begin, append->len);
+};
+
+void _string_append_ptr(string *s, const char *append) { _string_append(s, append, strlen(append)); };
+
+#define String_append(_self_ptr, value)                                                                                \
+    _Generic((value), char *: _string_append_ptr, string *: _string_append_s)(_self_ptr, value)
+
+// :::: String.initializers
+string *new_string_initializer(int cap, string *f, ...) {
+    // new string
+    string *res = _string_new_empty(cap);
+
+    va_list ls;
+    va_start(ls, 0);
+    while (true) {
+        string *p;
+        if (p = va_arg(ls, string *)) {
+            printf("[str_init]=%s %i\n", str_cstr(p), cap); // append
+            String_append(res, p);
+        } else
+            break;
+    }
+
+    va_end(ls);
+
+    return res;
+};
+
+string *new_string_initializer_ptr(int cap, const char *f, ...) {
+    // new string
+    string *res = _string_new_empty(cap);
+
+    va_list ls;
+    va_start(ls, 0);
+    while (true) {
+        const char *p;
+        if (p = va_arg(ls, const char *)) {
+            printf("[str_init_ptr]=%s %i\n", p, cap); // append
+            String_append(res, (char *) p);
+        } else
+            break;
+    }
+
+    va_end(ls);
+
+    return res;
+};
+
+#define __STR_CAPACITY_SHORT 32
+#define __STR_CAPACITY_DEFAULT 64
+#define __STR_CAPACITY_LONG 532
+#define __STR_CAPACITY_LARGE 2048
+
+#define _StringCtor(f, cap, ...)                                                                                       \
+    _Generic((f), string *: new_string_initializer, char *: new_string_initializer_ptr)(cap, NULL, __VA_ARGS__)
+
+#define _StringParams(Capacity, First, ...) _StringCtor(First, Capacity, First, __VA_ARGS__)
+
+#define String(...) _StringParams(__STR_CAPACITY_DEFAULT, __VA_ARGS__, NULL)
+#define StringShort(...) _StringParams(__STR_CAPACITY_SHORT, __VA_ARGS__, NULL)
+#define StringLong(...) _StringParams(__STR_CAPACITY_LONG, __VA_ARGS__, NULL)
+#define StringLarge(...) _StringParams(__STR_CAPACITY_LARGE, __VA_ARGS__, NULL)
+
 int main() {
     printf("HI!\n");
-    char *qw = "apple gold";
 
-    char *s = substr(&qw[6], 4);
-    printf("substr=%s\n", s);
-    return;
+    string *s = String("Golden ", "Mayer");
+    printf("res=%s\n", str_cstr(s));
+    String_append(s, " Brusk");
+    printf("res=%s\n", str_cstr(s));
 
-    int t1 = 5;
-    int t2 = 10;
-    int t3 = -55;
-
-    tree tr;
-    tree_init(&tr, sizeof(int));
-    tree_node *r1 = tree_add(&tr, tr.head, &t1);
-    tree_node *r2 = tree_add(&tr, r1, &t2);
-    tree_node *r3 = tree_add(&tr, r2, &t2);
-
-    bool res = tree_dfs_contains(&tr, compr_ptrval_int, &t3);
-    printf("[res]=%i\n", res);
-
-    tree_dstr(&tr);
+    string *s2 = String("Big");
+    printf("res=%s\n", str_cstr(s2));
+    String_append(s2, " Mack");
+    printf("res=%s\n", str_cstr(s2));
 
     return 0;
 }
-*/
+
 // compr(node* node, void* node_value)
 // dfs(node* root, compr*)
 // bfs(node* root, compr*)
