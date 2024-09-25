@@ -34,7 +34,8 @@
 			"request.h": "c",
 			"coredef.h": "c",
 			"stdlib.h": "c",
-			"stdarg.h": "c"
+			"stdarg.h": "c",
+			"p_str.h": "c"
 		}
 	}
 }

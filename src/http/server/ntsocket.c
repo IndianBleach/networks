@@ -1,5 +1,6 @@
 #include "../include/sockets/ntsocket.h"
 
+#include "../include/core/core.h"
 #include "../include/sockets/epoll.h"
 #include "../include/sockets/epollfd.h"
 #include "../include/types.h"
@@ -139,6 +140,8 @@ void ntsock_io_run(ntnode_config *config) {
     int client_fd;
     ssize_t bytes_read;
     char rbuff[1024];
+
+    //string *
 
     // fix
     //httprequest_buff reqbuff;
