@@ -14,6 +14,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+// string
+#include "../include/core/str.h"
+
 // ssl
 #define SSL_PUBKEY_PATH "/home/gcreep/github.local/networks/ssl/local.pem"
 #define SSL_PRIVKEY_PATH "/home/gcreep/github.local/networks/ssl/local.pem"
@@ -141,7 +144,8 @@ void ntsock_io_run(ntnode_config *config) {
     ssize_t bytes_read;
     char rbuff[1024];
 
-    //string *
+    string *rstring = StringLarge("");
+    String_clear(rstring);
 
     // fix
     //httprequest_buff reqbuff;
@@ -160,20 +164,28 @@ void ntsock_io_run(ntnode_config *config) {
             client_fd = poll_events[i].data.fd;
 
             if ((client_fd == socket_fd) && (poll_events[i].events & EPOLLIN)) {
-                printf("node.%lu: ACCEPT.\n", tid);
+                //printf("node.%lu: ACCEPT.\n", tid);
                 //fd_lsaccept(epoll_fd, socket_fd);
 
                 cssl = SSL_new(sslctx);
-                printf("ssl.new()\n");
+                //printf("ssl.new()\n");
 
                 fdssl_accept(epoll_fd, socket_fd, sslctx, cssl);
             } else if (poll_events[i].events & EPOLLIN) {
-                printf("node.%lu: EPOLLIN.\n", tid);
-                fdssl_read(epoll_fd, client_fd, rbuff, cssl);
-                printf("READ=%s\n", rbuff);
+                //printf("node.%lu: EPOLLIN.\n", tid);
+
+                //string *st = StringLarge("");
+                //String_clear(st);
+                fdssl_read(epoll_fd, client_fd, rstring, cssl);
+                String_append(rstring, "\n----------------------------\n");
+
                 //fdssl_read(epoll_fd, client_fd, rbuff, cssl);
+                printf("READ=%s\n", String_c_str(rstring));
+                String_clear(rstring);
+                //String_fdstr(st);
+
             } else if (poll_events[i].events & EPOLLOUT) {
-                printf("node.%lu: EPOLLOUT.\n", tid);
+                //printf("node.%lu: EPOLLOUT.\n", tid);
                 fdssl_write(epoll_fd, client_fd, resp2, cssl);
                 debuginfo_req_inc();
             }

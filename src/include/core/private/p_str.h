@@ -27,10 +27,12 @@ void _string_append_ptr(struct string *s, const char *append);
 struct string *_string_dup(char *from);
 struct string *_string_dup_s(struct string *s);
 
+char *_string_get_buff(struct string *s);
+void _string_set_len(struct string *s, int len);
+
 #define _StringCtor(f, cap, ...)                                                                                       \
     _Generic((f), struct string *: new_string_initializer, char *: new_string_initializer_ptr)(cap, NULL, __VA_ARGS__)
 
 #define _StringParams(Capacity, First, ...) _StringCtor(First, Capacity, First, __VA_ARGS__)
-
 
 #endif

@@ -99,6 +99,10 @@ string *new_string_initializer_ptr(int cap, const char *f, ...) {
     return res;
 };
 
+char *_string_get_buff(struct string *s) { return (char *) s->iterator.begin; }
+
+void _string_set_len(struct string *s, int len) { s->len = len; }
+
 // c_str
 const char *_string_cstr(string *s) { return (const char *) s->iterator.begin; }
 

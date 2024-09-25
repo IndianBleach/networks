@@ -48,22 +48,7 @@ void ntconfig_init(ntnode_config *config) {
 int main() {
     printf("test.start\n");
 
-    string *s = String("apple");
-    String_c_str(s);
 
-    String_append(s, "Good!");
-
-    string *s2 = String_dup(s);
-
-    String_clear(s);
-
-    printf("res=%s\n", String_c_str(s));
-    printf("res=%s\n", String_c_str(s2));
-
-    String_fdstr(s);
-    String_fdstr(s2);
-
-    return;
     ntnode_config c1;
     ntconfig_init(&c1);
     tid *t1;

@@ -32,6 +32,8 @@ typedef struct string string;
 
 #define String_c_str(_str) _string_cstr(_str)
 
+#define String_set_len(_str, len) _string_set_len(_str, len)
+
 #define String_sub(_str, from, len)                                                                                    \
     _Generic((_str),\ 
     string *: _string_sub, \                                                                                             
@@ -41,5 +43,6 @@ typedef struct string string;
 #define String_append(_self_ptr, value)                                                                                \
     _Generic((value), char *: _string_append_ptr, string *: _string_append_s)(_self_ptr, value)
 
+#define String_get_buff(__str) _string_get_buff(__str)
 
 #endif

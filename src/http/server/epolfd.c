@@ -1,4 +1,5 @@
 
+#include "../include/core/str.h"
 #include "../include/sockets/epoll.h"
 
 #include <assert.h>
@@ -115,13 +116,13 @@ void fdssl_accept(int epoll_fd, int server_fd, SSL_CTX *sslctx, SSL *sslcon) {
     epoll_add(epoll_fd, clfd, EPOLLIN | EPOLLOUT | EPOLLET);
 }
 
-void fdssl_read(int epollfd, int fd, char *buf, SSL *sslcon) {
+void fdssl_read(int epollfd, int fd, string *str, SSL *sslcon) {
     int nread = 0;
 
     //printf("sock.read: buff=%p epoll=%i fd=%i\n", buf, epollfd, fd);
     //perror("last err: ");
 
-    nread = SSL_read(sslcon, buf, 1024);
+    nread = SSL_read(sslcon, String_get_buff(str), 1024);
     printf("SSL_read=%i\n", nread);
 
     if (nread == -1) {
@@ -136,6 +137,9 @@ void fdssl_read(int epollfd, int fd, char *buf, SSL *sslcon) {
         //printf("read message is : %s\n", buf);
         // Modify the event corresponding to the descriptor, and write it to write
         epoll_mod(epollfd, fd, EPOLLOUT);
+        //printf("BUFF=%s\n", String_get_buff(str));
+        //printf("END...\n");
+        String_set_len(str, nread);
     }
 }
 
