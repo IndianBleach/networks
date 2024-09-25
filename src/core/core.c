@@ -996,7 +996,15 @@ string *_string_new(size_t cap, const char *val) {
 
 const char *str_cstr(string *s) { return (const char *) s->iterator.begin; }
 
-void str_dstr(string *str) { free(str->iterator.begin); }
+void __str_dstr(string *str) {
+    printf("free\n");
+    free(str->iterator.begin);
+}
+
+#define String_dstr(__str) __str_dstr(__str);
+#define String_fdstr(__str)                                                                                            \
+    __str_dstr(__str);                                                                                                 \
+    free(__str)
 
 // generic
 // append, sub, dup, split, new
@@ -1050,24 +1058,22 @@ string *_string_sub_ptr(const char *s, int from, int len) {
     str_copy(str, to)
     str_dup(str)
     str_clear
-
-    str_def
-    lrg_l
-    str_lr
-    str_s
-
-    mstr_
-
 */
 
 
+void _string_clear(string *s) { memset(s->iterator.begin, 0, s->len); }
+
+#define String_clear(__str) _string_clear(__str)
+
 void _string_append(string *s, const char *val, size_t len) {
     if (s->len + len >= s->iterator.len) {
-        printf("[_string_append] ensure cap..\n");
-    } else {
-        strncpy(&s->iterator.begin[s->len], val, len);
-        s->len += len;
+        _string_ensure_capacity(s, s->iterator.len * 2);
     }
+
+    // fix: need more capacity than current x2.
+
+    strncpy(&s->iterator.begin[s->len], val, len);
+    s->len += len;
 }
 
 void _string_append_s(string *s, string *append) {
@@ -1135,49 +1141,41 @@ string *new_string_initializer_ptr(int cap, const char *f, ...) {
 #define StringLong(...) _StringParams(__STR_CAPACITY_LONG, __VA_ARGS__, NULL)
 #define StringLarge(...) _StringParams(__STR_CAPACITY_LARGE, __VA_ARGS__, NULL)
 
+// :::: String.ops
+
+string *_string_dup(char *from) {
+    int sz = strlen(from);
+    assert(sz > 0);
+
+    string *s = _string_new_empty(sz);
+
+    memcpy(s->iterator.begin, from, sz);
+
+    return s;
+}
+
+string *_string_dup_s(string *s) { return _string_dup((char *) s->iterator.begin); }
+
+#define String_dup(_str) _Generic((_str), string *: _string_dup_s, char *: _string_dup)(_str)
+
+void _string_ensure_capacity(string *s, size_t ncap) {
+    char *old = s->iterator.begin;
+    s->iterator.begin = (char *) realloc(old, (ncap + 1) * sizeof(char));
+    s->iterator.len = ncap;
+    ((char *) s->iterator.begin)[ncap] = '\0';
+    // clearing default trash values
+    memset(&s->iterator.begin[s->len], 0, (ncap + 1 - s->len) * sizeof(char));
+}
+
 int main() {
     printf("HI!\n");
 
-    string *s = String("Golden ", "Mayer");
+    string *s = String("aple");
     printf("res=%s\n", str_cstr(s));
-    String_append(s, " Brusk");
+    String_append(s, " BruskBruskBruskBruskBruskBruskBruskBruskBruskBruskBruskBruskBruskBruskBrus");
     printf("res=%s\n", str_cstr(s));
 
-    string *s2 = String("Big");
-    printf("res=%s\n", str_cstr(s2));
-    String_append(s2, " Mack");
-    printf("res=%s\n", str_cstr(s2));
+    String_fdstr(s);
 
     return 0;
 }
-
-// compr(node* node, void* node_value)
-// dfs(node* root, compr*)
-// bfs(node* root, compr*)
-
-
-int compr_usr_dptr(void *dptr_usra, void *dptr_usrb) {
-    usr **t1 = (usr **) dptr_usra;
-    usr **t2 = (usr **) dptr_usrb;
-    if (t1 == NULL || t2 == NULL) {
-        printf("compr_usr_dptr> bad cast. (dptr)\n");
-        return -1;
-    }
-
-    if ((*t1)->value == (*t2)->value)
-        return 0;
-
-    return -1;
-}
-
-/*
-    Queue
-    -front()
-    -back()
-    -empty()
-    -push
-    -pop
-    -new()
-    -dstr()
-    -clear()
-*/
