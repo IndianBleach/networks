@@ -28,6 +28,9 @@ TEST_DIR_SRC = ./src/
 TEST_HEADERS = $(shell find $(TEST_DIR_HEADERS) -name *.h)
 TEST_SRC = $(shell find $(TEST_DIR_SRC) -name *.c)
 
+test.threads:
+	$(GCC) $(FLAGS) ./src/test/test.c -o ./src.out
+
 core.core2:
 	$(GCC) $(FLAGS) ./src/core/core.c -o $(BUILD_OBJ)
 

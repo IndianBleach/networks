@@ -41,7 +41,10 @@ int file_exists(const char *ln) {
 char resp2[] = "HTTP/1.0 200 OK\r\n"
                "Server: webserver-c\r\n"
                "Content-type: text/html\r\n\r\n"
-               "<html>hello, world</html>\r\n";
+               "<html>"
+               "<h1>hello, world</h1>"
+               "<script src=\"./source.js\"></script>"
+               "</html>\r\n";
 
 /// FN: sock_listen(ntnode_config *config)
 /// PARAMS: config='config with ip, port, scaling and epoll metadata'

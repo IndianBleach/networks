@@ -45,6 +45,37 @@ void ntconfig_init(ntnode_config *config) {
 
 #include "../include/core/str.h"
 
+/*
+    server_resource
+        method http_method
+        access no_access/token
+        path
+
+    http_response
+        status_code
+        content
+        content_type
+
+
+    http_worker
+        write_response(request, epoll_fd, client_fd, cssl) (new thread)
+            r = get_resource()
+            check_access(r, request)
+            gen_response(r, request, response&)
+
+            return response;
+
+        handle_in(fd_epoll, fd_client, SSL) --ts
+            receive_request
+            send_response
+
+        handle_out_empty()
+
+
+
+*/
+
+
 int main() {
     printf("test.start\n");
 

@@ -955,7 +955,39 @@ int compr_ptrval_int(void *dptra, void *dptrb) {
     return -1;
 }
 
+#include "../include/core/str.h"
+#include "../include/http/httpinfo.h"
+#include "../include/http/request.h"
+
 /*
+    httpResponse
+        statusCode
+        buff
+
+    response_new(code, gen_response(request))
+
+*/
+
+typedef char *httpresponse_buffptr;
+
+typedef struct httpresponse {
+    http_statuscode code;
+    httpresponse_buffptr buff;
+} httpresponse;
+
+void gen_response(httprequest *__request, httpresponse *response) {
+    // not found pages
+    // auth pages
+    //
+
+    if (__request->method == HTTP_GET) {
+        // filePage
+    } else {
+        http_statuscode code;
+        char *method;
+    }
+}
+
 int main() {
     printf("HI!\n");
 
@@ -968,4 +1000,3 @@ int main() {
 
     return 0;
 }
-*/
