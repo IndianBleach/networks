@@ -31,15 +31,8 @@ void mat3_init(mat3 *self, int x, int y, int z, int x2, int y2, int z2, int x3, 
     self->z3 = z3;
 }
 
-void mat3_summ(mat3* _ma, mat3 _mx) {
+void mat3_summ(mat3 *_ma, mat3 _mx) {
     /*
             thread_
     */
-
-   
-} 
-
-
-int main() {
-    int
 }

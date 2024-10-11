@@ -10,7 +10,7 @@ INCLUDE_FLAGS=-I ./src/include
 SSL_FLAGS = -lssl -lcrypto
 
 GCC = gcc
-MAIN_FLAGS = -std=c99 -g -O0 $(INCLUDE_FLAGS) $(SSL_FLAGS)
+MAIN_FLAGS = -std=c99 -g -O0 -w $(INCLUDE_FLAGS) $(SSL_FLAGS)
 
 # WARNINGS_FLAGS = -Wall -Wextra -Wpedantic -Wduplicated-branches -Wduplicated-cond -Wcast-qual -Wconversion -Wsign-conversion -Wlogical-op -Werror
 WARNINGS_FLAGS = -Wall -Wextra -Wpedantic -Wduplicated-branches -Wduplicated-cond -Wcast-qual -Wconversion -Wsign-conversion -Wlogical-op
@@ -30,6 +30,9 @@ TEST_SRC = $(shell find $(TEST_DIR_SRC) -name *.c)
 
 test.threads:
 	$(GCC) $(FLAGS) ./src/test/test.c -o ./src.out
+
+http.test:
+	$(GCC) $(FLAGS) ./src/http/test2.c -o $(BUILD_OBJ)
 
 core.core2:
 	$(GCC) $(FLAGS) ./src/core/core.c -o $(BUILD_OBJ)

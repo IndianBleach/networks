@@ -36,7 +36,11 @@
 			"stdlib.h": "c",
 			"stdarg.h": "c",
 			"p_str.h": "c",
-			"str.h": "c"
+			"str.h": "c",
+			"pthread.h": "c",
+			"mman.h": "c",
+			"workers.h": "c",
+			"stdexcept": "c"
 		}
 	}
 }

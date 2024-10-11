@@ -1,6 +1,7 @@
 #include "../include/sockets/ntsocket.h"
 
 #include "../include/core/core.h"
+#include "../include/http/workers.h"
 #include "../include/sockets/epoll.h"
 #include "../include/sockets/epollfd.h"
 #include "../include/types.h"
@@ -13,6 +14,7 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
 
 // string
 #include "../include/core/str.h"
@@ -147,9 +149,6 @@ void ntsock_io_run(ntnode_config *config) {
     ssize_t bytes_read;
     char rbuff[1024];
 
-    string *rstring = StringLarge("");
-    String_clear(rstring);
-
     // fix
     //httprequest_buff reqbuff;
     //requestbuff_init(&reqbuff, 1024);
@@ -175,16 +174,16 @@ void ntsock_io_run(ntnode_config *config) {
 
                 fdssl_accept(epoll_fd, socket_fd, sslctx, cssl);
             } else if (poll_events[i].events & EPOLLIN) {
-                //printf("node.%lu: EPOLLIN.\n", tid);
+                printf("node.%lu: EPOLLIN.\n", tid);
 
-                //string *st = StringLarge("");
-                //String_clear(st);
-                fdssl_read(epoll_fd, client_fd, rstring, cssl);
-                String_append(rstring, "\n----------------------------\n");
+                http_handle_in(epoll_fd, client_fd, cssl);
+                //break;
+                //fdssl_read(epoll_fd, client_fd, rstring, cssl);
+                //String_append(rstring, "\n----------------------------\n");
 
                 //fdssl_read(epoll_fd, client_fd, rbuff, cssl);
-                printf("READ=%s\n", String_c_str(rstring));
-                String_clear(rstring);
+                //printf("READ=%s\n", String_c_str(rstring));
+                //String_clear(rstring);
                 //String_fdstr(st);
 
             } else if (poll_events[i].events & EPOLLOUT) {

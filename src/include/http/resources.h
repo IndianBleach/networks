@@ -7,6 +7,7 @@ typedef struct server_resource_map;
 
 typedef struct server_resource server_resource;
 
+/*
 typedef enum server_resource_access {
     RES_ACCESS_ALL,
     RES_ACCESS_TOKEN_SAMPLE
@@ -17,6 +18,7 @@ typedef enum server_resource_access {
 
 server_resource* resource_get(server_resource_map* map);
 unsigned int resource_check_access(server_resource* resource, httprequest* request);
+*/
 
 #endif
 

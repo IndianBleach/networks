@@ -987,16 +987,3 @@ void gen_response(httprequest *__request, httpresponse *response) {
         char *method;
     }
 }
-
-int main() {
-    printf("HI!\n");
-
-    string *s = String("aple");
-    printf("res=%s\n", str_cstr(s));
-    String_append(s, " BruskBruskBruskBruskBruskBruskBruskBruskBruskBruskBruskBruskBruskBruskBrus");
-    printf("res=%s\n", str_cstr(s));
-
-    String_fdstr(s);
-
-    return 0;
-}

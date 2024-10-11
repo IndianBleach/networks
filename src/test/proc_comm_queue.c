@@ -27,7 +27,7 @@
 
 #include <mqueue.h>
 
-int main55() {
+int main3() {
     mqd_t mq;
 
     struct mq_attr attr;

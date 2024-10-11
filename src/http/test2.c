@@ -117,15 +117,42 @@ Accept-Encoding: gzip, deflate, br, zstd
 Accept-Language: ru,en;q=0.9
 */
 
+#include <unistd.h>
+
+void parse_req() {
+    printf("proc(start)=%i\n", getpid());
+    sleep(10);
+    printf("proc(end)=%i\n", getpid());
+}
+
+void hande_req() {
+    if (fork() == 0) {
+        // children
+        parse_req();
+        exit(1);
+    }
+
+    printf("hande_req(out)\n");
+}
 
 int main2() {
     printf("test2.start\n");
+
+    for (int i = 0; i < 10; i++) {
+        hande_req();
+    }
+
+    printf("end\n");
+    while (true)
+        ;
+
 
     //
     //char *t = "Referer: https://127.0.0.1:8013\nHost: 127.0.0.1:8013\nAccept-Encoding: gzip, deflate, br, "
     //          "zstd\nAccept: image/avif,image/webp,image/apng,image/svg+xml\nsec-ch-ua-platform: \"Windows\"";
     //GET /user HTTP/1.1
 
+    /*
     char *t =
         "GET /user?name=john&age=23 HTTP/1.1\nReferer: https://127.0.0.1:8013\nHost: "
         "127.0.0.1:8013\nAccept-Encoding: gzip, "
@@ -143,7 +170,7 @@ int main2() {
     httprequest req;
     parse_request(&buff, &req);
 
-    /*
+    
         vector qparams;
     vector_init(&qparams, 16, sizeof(queryparam *));
 

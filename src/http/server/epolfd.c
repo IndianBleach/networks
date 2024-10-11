@@ -147,16 +147,16 @@ void fdssl_write(int epollfd, int fd, char *buf, SSL *sslcon) {
     int nwrite = 0;
 
     nwrite = SSL_write(sslcon, buf, strlen(buf));
-    printf("SSL_write=%i\n", nwrite);
+    //printf("SSL_write=%i\n", nwrite);
 
     if (nwrite == -1) {
         //perror("err.do_write\n");
         ERR_print_errors_fp(stderr);
         int err = SSL_get_error(sslcon, nwrite);
         if (err = SSL_ERROR_WANT_READ) {
-            printf("ssl.err: SSL_ERROR_WANT_READ\n");
+            //printf("ssl.err: SSL_ERROR_WANT_READ\n");
         } else if (err = SSL_ERROR_WANT_WRITE) {
-            printf("ssl.err: SSL_ERROR_WANT_WRITE\n");
+            // printf("ssl.err: SSL_ERROR_WANT_WRITE\n");
         } else {
             printf("ssl.err=%i\n", err);
         }
